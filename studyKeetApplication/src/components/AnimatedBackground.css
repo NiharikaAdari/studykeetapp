@@ -1,0 +1,46 @@
+:root {
+  --primary-stripe-rgb: 178 245 234;
+
+  --secondary-stripe-rgb: 255 255 255;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+#animated-background {
+  position: fixed; /* Fixed to cover the entire viewport */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1; /* Behind all other content */
+  background-color: black;
+}
+
+#stripe-pattern {
+  height: 100%;
+  width: 100%;
+  background-size: 18px 18px;
+  background-image: linear-gradient(
+    -45deg,
+    rgb(var(--primary-stripe-rgb)) 25%,
+    rgb(var(--secondary-stripe-rgb)) 25%,
+    rgb(var(--secondary-stripe-rgb)) 50%,
+    rgb(var(--primary-stripe-rgb)) 50%,
+    rgb(var(--primary-stripe-rgb)) 75%,
+    rgb(var(--secondary-stripe-rgb)) 75%,
+    rgb(var(--secondary-stripe-rgb)) 100%
+  );
+  animation: pan 100s linear infinite;
+}
+
+@keyframes pan {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 0%;
+  }
+}
