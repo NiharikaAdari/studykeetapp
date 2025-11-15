@@ -1,0 +1,14 @@
+Run
+
+pip install -r requirements.txt
+uvicorn app:app --reload
+
+cd to studykeeyApplication
+npm install
+npm start
+
+
+update
+postgres database you want
+groq models
+groq api key 

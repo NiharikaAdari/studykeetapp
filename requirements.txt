@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+pydantic
+python-multipart
+sqlalchemy
+psycopg2-binary
+PyPDF2
+pydub
+numpy
+langchain
+langchain_groq
+langchain-huggingface
+langchain-core
+llama-index
+langchain-community 
+sentence_transformers
+chromadb
