@@ -4,6 +4,15 @@ const { FuseV1Options, FuseVersion } = require("@electron/fuses");
 module.exports = {
   packagerConfig: {
     asar: true,
+    icon: './assets/images/icon', // Path to your app icon (without extension)
+    appBundleId: 'com.studykeet.app',
+    appCategoryType: 'public.app-category.education',
+    win32metadata: {
+      CompanyName: 'StudyKeet',
+      ProductName: 'StudyKeet',
+      FileDescription: 'AI-Powered Study Assistant',
+      OriginalFilename: 'StudyKeet.exe',
+    },
   },
   rebuildConfig: {},
   makers: [

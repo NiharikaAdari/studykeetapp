@@ -1,8 +1,8 @@
 {
-  "name": "studykeetapplication",
-  "productName": "studykeetapplication",
+  "name": "studykeet",
+  "productName": "StudyKeet",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "AI-Powered Study Assistant with Spaced Repetition and Smart Flashcards",
   "main": ".webpack/main",
   "scripts": {
     "start": "electron-forge start",

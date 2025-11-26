@@ -299,17 +299,20 @@ export default function InfoDrawer() {
           query={["Box 1 — Learning"]}
           styles={{ px: "2", py: "1", rounded: "full", bg: "yellow.300" }}
         >
-          Box 1 — Learning: New/challenging cards reviewed daily.
+         🪺 Nest 1 — Again: Review in 15 minutes for difficult cards.
         </Highlight>
       </ListItem>
-
+        
+        
+       
+        
       <ListItem>
         <ListIcon as={MdGpsFixed} color="green.400" />
         <Highlight
           query={["Box 2 — Reviewing"]}
           styles={{ px: "2", py: "1", rounded: "full", bg: "yellow.300" }}
         >
-          Box 2 — Reviewing: Cards improving, reviewed every 3 days.
+          🪺 Nest 2 — Hard: Review tomorrow (1 day).
         </Highlight>
       </ListItem>
 
@@ -319,7 +322,7 @@ export default function InfoDrawer() {
           query={["Box 3 — Mastered"]}
           styles={{ px: "2", py: "1", rounded: "full", bg: "yellow.300" }}
         >
-          Box 3 — Mastered: Strongly learned cards reviewed weekly.
+           🪺 Nest 3 — Good: Review in 2 days.
         </Highlight>
       </ListItem>
     </List>

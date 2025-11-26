@@ -156,6 +156,31 @@ Once the backend is running, visit:
 - **Chakra UI**: Component library
 - **Axios**: HTTP client
 
+## Building Desktop Executables
+
+You can package StudyKeet as a standalone desktop application!
+
+**Quick Build:**
+```bash
+# Windows
+build-app.bat
+
+# Linux/Mac
+chmod +x build-app.sh
+./build-app.sh
+```
+
+This creates installers for your platform:
+- **Windows**: `.exe` installer in `studyKeetApplication/out/make/squirrel.windows/`
+- **macOS**: `.app` bundle in `studyKeetApplication/out/make/zip/darwin/`
+- **Linux**: `.deb` and `.rpm` in `studyKeetApplication/out/make/`
+
+📖 **See [DEPLOYMENT.md](DEPLOYMENT.md)** for complete deployment guide including:
+- Adding custom app icons
+- Code signing for production
+- Distribution options (GitHub Releases, auto-updates)
+- Backend deployment strategies
+
 ## Development
 
 ### Backend Structure:
@@ -169,6 +194,11 @@ Once the backend is running, visit:
 2. Add utility functions in `backend/utils/`
 3. Register routes in `main.py`
 4. Update frontend components in `studyKeetApplication/src/`
+
+### Documentation:
+- **[ARCHITECTURE.md](ARCHITECTURE.md)**: System architecture and data flow diagrams
+- **[DEPLOYMENT.md](DEPLOYMENT.md)**: Desktop app deployment guide
+- **[MIGRATION.md](MIGRATION.md)**: Migration guide from old structure
 
 ## Troubleshooting
 
