@@ -889,12 +889,15 @@ def migrate_flashcards(db: Session = Depends(get_db)):
 
 # Get cards due for review today
 @app.get("/flashcards/due")
-def get_due_flashcards(db: Session = Depends(get_db)):
+def get_due_flashcards(subject: Optional[str] = None, db: Session = Depends(get_db)):
     try:
         now = datetime.now()
-        due_cards = db.query(FlashcardModel).filter(
+        query = db.query(FlashcardModel).filter(
             FlashcardModel.next_review <= now
-        ).order_by(FlashcardModel.leitner_box.asc()).all()
+        )
+        if subject:
+            query = query.filter(FlashcardModel.subject == subject)
+        due_cards = query.order_by(FlashcardModel.leitner_box.asc()).all()
         
         # Convert to dict manually
         result = []
@@ -930,9 +933,9 @@ def get_due_flashcards(db: Session = Depends(get_db)):
             result.append(card_dict)
         return result
 
-# Review a flashcard (mark correct/incorrect)
+# Review a flashcard (mark again/hard/good/easy)
 class ReviewRequest(BaseModel):
-    result: str  # "correct" or "incorrect"
+    result: str  # "again", "hard", "good", or "easy"
 
 @app.post("/flashcards/review/{flashcard_id}")
 def review_flashcard(flashcard_id: int, review: ReviewRequest, db: Session = Depends(get_db)):
@@ -941,23 +944,21 @@ def review_flashcard(flashcard_id: int, review: ReviewRequest, db: Session = Dep
     if not flashcard:
         raise HTTPException(status_code=404, detail="Flashcard not found")
     
-    # Update Leitner box based on result
-    if review.result == "correct":
-        flashcard.leitner_box = min(flashcard.leitner_box + 1, 3)
-    elif review.result == "incorrect":
+    # Update Leitner nest based on result
+    if review.result == "again":
         flashcard.leitner_box = 1
+        flashcard.next_review = datetime.now() + timedelta(minutes=15)
+    elif review.result == "hard":
+        flashcard.leitner_box = 2
+        flashcard.next_review = datetime.now() + timedelta(days=1)
+    elif review.result == "good":
+        flashcard.leitner_box = 3
+        flashcard.next_review = datetime.now() + timedelta(days=2)
+    elif review.result == "easy":
+        flashcard.leitner_box = 4
+        flashcard.next_review = datetime.now() + timedelta(days=7)
     else:
-        raise HTTPException(status_code=400, detail="Invalid result. Use 'correct' or 'incorrect'")
-    
-    # Calculate next review date based on box
-    intervals = {
-        1: 1,   # Box 1: 1 day
-        2: 2,   # Box 2: 2 days
-        3: 7    # Box 3: 7 days
-    }
-    
-    days_until_next_review = intervals.get(flashcard.leitner_box, 1)
-    flashcard.next_review = datetime.now() + timedelta(days=days_until_next_review)
+        raise HTTPException(status_code=400, detail="Invalid result. Use 'again', 'hard', 'good', or 'easy'")
     
     # Update review history
     import json
@@ -1006,9 +1007,9 @@ def get_session_stats(db: Session = Depends(get_db)):
     # Total cards
     total_cards = db.query(FlashcardModel).count()
     
-    # Box distribution
+    # Nest distribution
     box_distribution = {}
-    for box_num in [1, 2, 3]:
+    for box_num in [1, 2, 3, 4]:
         count = db.query(FlashcardModel).filter(FlashcardModel.leitner_box == box_num).count()
         box_distribution[box_num] = count
     
@@ -1018,3 +1019,50 @@ def get_session_stats(db: Session = Depends(get_db)):
         "remaining": due_today,
         "box_distribution": box_distribution
     }
+
+# Get preview stats by subject
+@app.get("/flashcards/session/preview")
+def get_session_preview(db: Session = Depends(get_db)):
+    now = datetime.now()
+    
+    # Get all subjects
+    subjects = db.query(FlashcardModel.subject).distinct().all()
+    subjects = [s[0] for s in subjects if s[0]]
+    
+    preview = {}
+    for subject in subjects:
+        due_count = db.query(FlashcardModel).filter(
+            FlashcardModel.subject == subject,
+            FlashcardModel.next_review <= now
+        ).count()
+        
+        box_dist = {}
+        for box_num in [1, 2, 3, 4]:
+            count = db.query(FlashcardModel).filter(
+                FlashcardModel.subject == subject,
+                FlashcardModel.leitner_box == box_num,
+                FlashcardModel.next_review <= now
+            ).count()
+            box_dist[f"box_{box_num}"] = count
+        
+        preview[subject] = {
+            "due_count": due_count,
+            **box_dist
+        }
+    
+    # Also include "All" subjects
+    total_due = db.query(FlashcardModel).filter(FlashcardModel.next_review <= now).count()
+    all_box_dist = {}
+    for box_num in [1, 2, 3, 4]:
+        count = db.query(FlashcardModel).filter(
+            FlashcardModel.leitner_box == box_num,
+            FlashcardModel.next_review <= now
+        ).count()
+        all_box_dist[f"box_{box_num}"] = count
+    
+    preview["All"] = {
+        "due_count": total_due,
+        **all_box_dist
+    }
+    
+    return preview

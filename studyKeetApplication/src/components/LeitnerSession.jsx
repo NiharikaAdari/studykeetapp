@@ -18,11 +18,11 @@ import { CloseIcon, CheckIcon, CloseIcon as XIcon } from "@chakra-ui/icons";
 import { FlashcardContext } from "./FlashcardContext.jsx";
 import "./FlashcardGrid.css";
 
-const LeitnerSession = ({ isOpen, onClose, questionFirst }) => {
+const LeitnerSession = ({ isOpen, onClose, questionFirst, subjectFilter }) => {
   const { sessionCards, markFlashcard, fetchDueFlashcards } = useContext(FlashcardContext);
   const [localIndex, setLocalIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [sessionResults, setSessionResults] = useState({ correct: 0, incorrect: 0 });
+  const [sessionResults, setSessionResults] = useState({ again: 0, hard: 0, good: 0, easy: 0 });
   const [isComplete, setIsComplete] = useState(false);
   const [localCards, setLocalCards] = useState([]);
   const toast = useToast();
@@ -51,11 +51,18 @@ const LeitnerSession = ({ isOpen, onClose, questionFirst }) => {
         if (!isFlipped) {
           handleFlip();
         }
-      } else if (e.key === 'ArrowLeft' && isFlipped) {
-        handleAnswer('incorrect');
-      } else if (e.key === 'ArrowRight' && isFlipped) {
-        handleAnswer('correct');
-      } else if (e.key === 'Escape') {
+      } else if (isFlipped) {
+        if (e.key === '1') {
+          handleAnswer('again');
+        } else if (e.key === '2') {
+          handleAnswer('hard');
+        } else if (e.key === '3') {
+          handleAnswer('good');
+        } else if (e.key === '4') {
+          handleAnswer('easy');
+        }
+      }
+      if (e.key === 'Escape') {
         handleClose();
       }
     };
@@ -108,7 +115,7 @@ const LeitnerSession = ({ isOpen, onClose, questionFirst }) => {
   };
 
   const handleRestart = async () => {
-    const newCards = await fetchDueFlashcards();
+    const newCards = await fetchDueFlashcards(subjectFilter);
     setLocalCards([...newCards]);
     setLocalIndex(0);
     setIsFlipped(false);
@@ -216,7 +223,7 @@ const LeitnerSession = ({ isOpen, onClose, questionFirst }) => {
                   Card {localIndex + 1} of {totalCards}
                 </Text>
                 <Text fontSize="md" color="white">
-                  Box {currentCard?.leitner_box || 1}
+                  🪺 Nest {currentCard?.leitner_box || 1}
                 </Text>
                 <IconButton
                   aria-label="Close session"
@@ -296,30 +303,58 @@ const LeitnerSession = ({ isOpen, onClose, questionFirst }) => {
 
           {/* Answer buttons (only show when flipped) */}
           {isFlipped && (
-            <HStack spacing={6}>
+            <HStack spacing={4}>
               <Button
-                leftIcon={<XIcon />}
-                colorScheme="red"
-                size="lg"
-                onClick={() => handleAnswer('incorrect')}
-                px={8}
-                py={6}
-                fontSize="xl"
+                bgColor="purple.400"
+                color="white"
+                size="md"
+                onClick={() => handleAnswer('again')}
+                px={4}
+                py={4}
+                fontSize="md"
+                _hover={{ bg: "purple.500" }}
               >
-                Incorrect
-                <Text fontSize="sm" ml={2}>(← Left)</Text>
+                Again
+                <Text fontSize="xs" ml={1}>(15m)</Text>
               </Button>
               <Button
-                leftIcon={<CheckIcon />}
-                colorScheme="green"
-                size="lg"
-                onClick={() => handleAnswer('correct')}
-                px={8}
-                py={6}
-                fontSize="xl"
+                bgColor="red.400"
+                color="white"
+                size="md"
+                onClick={() => handleAnswer('hard')}
+                px={4}
+                py={4}
+                fontSize="md"
+                _hover={{ bg: "red.500" }}
               >
-                Correct
-                <Text fontSize="sm" ml={2}>(Right →)</Text>
+                Hard
+                <Text fontSize="xs" ml={1}>(1d)</Text>
+              </Button>
+              <Button
+                bgColor="cyan.400"
+                color="white"
+                size="md"
+                onClick={() => handleAnswer('good')}
+                px={4}
+                py={4}
+                fontSize="md"
+                _hover={{ bg: "cyan.500" }}
+              >
+                Good
+                <Text fontSize="xs" ml={1}>(2d)</Text>
+              </Button>
+              <Button
+                bgColor="green.400"
+                color="white"
+                size="md"
+                onClick={() => handleAnswer('easy')}
+                px={4}
+                py={4}
+                fontSize="md"
+                _hover={{ bg: "green.500" }}
+              >
+                Easy
+                <Text fontSize="xs" ml={1}>(7d)</Text>
               </Button>
             </HStack>
           )}

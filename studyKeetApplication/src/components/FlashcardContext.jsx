@@ -102,15 +102,30 @@ export const FlashcardProvider = ({ children }) => {
   }, [subjects]);
 
   // Fetch cards due for review
-  const fetchDueFlashcards = async () => {
+  const fetchDueFlashcards = async (subject = "") => {
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/flashcards/due`);
+      let url = `http://127.0.0.1:8000/flashcards/due`;
+      if (subject) {
+        url += `?subject=${subject}`;
+      }
+      const response = await axios.get(url);
       setSessionCards(response.data);
       setSessionIndex(0);
       return response.data;
     } catch (error) {
       console.error("Error fetching due flashcards:", error);
       return [];
+    }
+  };
+
+  // Fetch preview stats by subject
+  const fetchSessionPreview = async () => {
+    try {
+      const response = await axios.get(`http://127.0.0.1:8000/flashcards/session/preview`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching session preview:", error);
+      return {};
     }
   };
 
@@ -167,6 +182,7 @@ export const FlashcardProvider = ({ children }) => {
         fetchDueFlashcards,
         markFlashcard,
         fetchSessionStats,
+        fetchSessionPreview,
         resetFlashcard
       }}
     >

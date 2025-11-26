@@ -12,25 +12,32 @@ import {
   HStack,
   Button,
   useToast,
+  Tooltip,
+  VStack,
+  Text,
 } from "@chakra-ui/react";
 import { inView } from "framer-motion";
 
 import AddFlashcard from "../components/AddFlashcard.jsx";
 import FlashcardGrid from "../components/FlashcardGrid.jsx";
 import LeitnerSession from "../components/LeitnerSession.jsx";
+import ReviewSession from "../components/ReviewSession.jsx";
 import { FlashcardContext, FlashcardProvider } from "../components/FlashcardContext.jsx";
 
 export default function Flashcardsboard() {
   const [selectedFlashcard, setSelectedFlashcard] = useState(null);
   const { isOpen: isSessionOpen, onOpen: onSessionOpen, onClose: onSessionClose } = useDisclosure();
+  const { isOpen: isReviewOpen, onOpen: onReviewOpen, onClose: onReviewClose } = useDisclosure();
   const [subjectFilter, setSubjectFilter] = useState("");
   const [questionFirst, setQuestionFirst] = useState(true);
-  const { fetchFlashcards, subjects, fetchDueFlashcards, sessionStats, fetchSessionStats } = useContext(FlashcardContext);
+  const [sessionPreview, setSessionPreview] = useState({});
+  const { flashcards, fetchFlashcards, subjects, fetchDueFlashcards, sessionStats, fetchSessionStats, fetchSessionPreview } = useContext(FlashcardContext);
   const toast = useToast();
 
   const handleSubjectChange = (e) => {
     setSubjectFilter(e.target.value);
     fetchFlashcards(e.target.value);
+    loadPreview();
   };
 
   useEffect(() => {
@@ -39,20 +46,40 @@ export default function Flashcardsboard() {
       behavior: "smooth",
     });
     fetchSessionStats();
+    loadPreview();
   }, []);
 
+  const loadPreview = async () => {
+    const preview = await fetchSessionPreview();
+    setSessionPreview(preview);
+  };
+
   const handleStartSession = async () => {
-    const dueCards = await fetchDueFlashcards();
+    const dueCards = await fetchDueFlashcards(subjectFilter);
     if (dueCards.length === 0) {
       toast({
         title: "No cards due",
-        description: "You've reviewed all cards for today!",
+        description: `You've reviewed all ${subjectFilter || 'cards'} for today!`,
         status: "info",
         duration: 3000,
         isClosable: true,
       });
     } else {
       onSessionOpen();
+    }
+  };
+
+  const handleStartReview = () => {
+    if (flashcards.length === 0) {
+      toast({
+        title: "No cards to review",
+        description: "Add some flashcards or adjust your filters.",
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      });
+    } else {
+      onReviewOpen();
     }
   };
 
@@ -101,18 +128,76 @@ export default function Flashcardsboard() {
             />
           </FormControl>
 
-          <Button
-            colorScheme="orange"
-            size="lg"
-            onClick={handleStartSession}
-            borderRadius={50}
-            px={8}
-            fontWeight="bold"
-            boxShadow="xl"
-            _hover={{ bg: "yellow.400" }}
+          <Tooltip
+            label={
+              <VStack align="start" spacing={1} p={2}>
+                <Text fontWeight="bold" fontSize="md">
+                  {subjectFilter || "All Subjects"}
+                </Text>
+                <Text fontSize="sm">
+                  📊 {sessionPreview[subjectFilter || "All"]?.due_count || 0} cards due
+                </Text>
+                <HStack spacing={2} fontSize="xs">
+                  <Text>🪺 N1: {sessionPreview[subjectFilter || "All"]?.box_1 || 0}</Text>
+                  <Text>🪺 N2: {sessionPreview[subjectFilter || "All"]?.box_2 || 0}</Text>
+                  <Text>🪺 N3: {sessionPreview[subjectFilter || "All"]?.box_3 || 0}</Text>
+                  <Text>🪺 N4: {sessionPreview[subjectFilter || "All"]?.box_4 || 0}</Text>
+                </HStack>
+              </VStack>
+            }
+            bg="gray.800"
+            color="white"
+            borderRadius="lg"
+            hasArrow
+            placement="bottom"
           >
-            🎯 Start Learning Session
-          </Button>
+            <Button
+              bgColor="green.300"
+              size="lg"
+              onClick={handleStartSession}
+              borderRadius={50}
+              px={8}
+              fontWeight="bold"
+              boxShadow="xl"
+              _hover={{ bg: "yellow.200" }}
+            >
+              🎯 Start Learning Session
+            </Button>
+          </Tooltip>
+
+          <Tooltip
+            label={
+              <VStack align="start" spacing={1} p={2}>
+                <Text fontWeight="bold" fontSize="md">
+                  {subjectFilter || "All Subjects"}
+                </Text>
+                <Text fontSize="sm">
+                  📝 {flashcards.length} cards available
+                </Text>
+                <Text fontSize="xs" color="gray.300">
+                  Practice without affecting Leitner progress
+                </Text>
+              </VStack>
+            }
+            bg="gray.800"
+            color="white"
+            borderRadius="lg"
+            hasArrow
+            placement="bottom"
+          >
+            <Button
+              bgColor="green.300"
+              size="lg"
+              onClick={handleStartReview}
+              borderRadius={50}
+              px={8}
+              fontWeight="bold"
+              boxShadow="xl"
+              _hover={{ bg: "yellow.200" }}
+            >
+              📝 Start Review Session
+            </Button>
+          </Tooltip>
         </Box>
       </SlideFade>
 
@@ -120,6 +205,15 @@ export default function Flashcardsboard() {
       <LeitnerSession 
         isOpen={isSessionOpen} 
         onClose={onSessionClose} 
+        questionFirst={questionFirst}
+        subjectFilter={subjectFilter}
+      />
+
+      {/* Review Session Modal */}
+      <ReviewSession 
+        isOpen={isReviewOpen} 
+        onClose={onReviewClose} 
+        cards={flashcards}
         questionFirst={questionFirst}
       />
       
