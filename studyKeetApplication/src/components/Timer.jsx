@@ -24,10 +24,17 @@ export default function Timer() {
   const [focusTime, setFocusTime] = useState(25);
   const [breakTime, setBreakTime] = useState(5);
   const [sessions, setSessions] = useState(4);
-  const [timeLeft, setTimeLeft] = useState(focusTime * 60); // Timer in seconds
+  const [timeLeft, setTimeLeft] = useState(25 * 60); // Timer in seconds
   const [isFocus, setIsFocus] = useState(true); // Track whether it's focus or break time
   const [sessionCount, setSessionCount] = useState(0); // Track completed sessions
   const [isRunning, setIsRunning] = useState(false);
+
+  // Update timeLeft when focusTime or breakTime changes (only if not running)
+  useEffect(() => {
+    if (!isRunning) {
+      setTimeLeft(isFocus ? focusTime * 60 : breakTime * 60);
+    }
+  }, [focusTime, breakTime, isFocus, isRunning]);
 
   // Total duration for either focus or break
   const totalTime = isFocus ? focusTime * 60 : breakTime * 60;
