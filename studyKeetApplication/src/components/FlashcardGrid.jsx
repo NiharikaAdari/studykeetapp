@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import {
   Box,
   SimpleGrid,
@@ -6,9 +6,14 @@ import {
   useDisclosure,
   Divider,
   useToast,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalCloseButton,
+  HStack,
 } from "@chakra-ui/react";
 import { FlashcardContext } from "./FlashcardContext.jsx";
-import { DeleteIcon } from "@chakra-ui/icons";
+import { DeleteIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "@chakra-ui/icons";
 import ConfirmDelete from "./ConfirmDelete.jsx";
 import "./FlashcardGrid.css";
 
@@ -17,6 +22,8 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [flashcardToDelete, setFlashcardToDelete] = React.useState(null);
   const [flippedCards, setFlippedCards] = useState({});
+  const [expandedIndex, setExpandedIndex] = useState(null);
+  const [expandedFlipped, setExpandedFlipped] = useState(false);
   const toast = useToast();
 
   const handleDelete = (flashcard) => {
@@ -44,10 +51,56 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
     }));
   };
 
+  const handleCardClick = (index, e) => {
+    // Prevent opening modal when clicking delete button
+    if (e.target.closest('button')) return;
+    setExpandedIndex(index);
+    setExpandedFlipped(false);
+  };
+
+  const handleExpandedFlip = () => {
+    setExpandedFlipped(prev => !prev);
+  };
+
+  const handleCloseExpanded = () => {
+    setExpandedIndex(null);
+    setExpandedFlipped(false);
+  };
+
+  const handleNavigate = (direction) => {
+    if (expandedIndex === null) return;
+    const newIndex = (expandedIndex + direction + flashcards.length) % flashcards.length;
+    setExpandedIndex(newIndex);
+    setExpandedFlipped(false);
+  };
+
+  useEffect(() => {
+    if (expandedIndex === null) return;
+    
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowLeft') {
+        handleNavigate(-1);
+      } else if (e.key === 'ArrowRight') {
+        handleNavigate(1);
+      } else if (e.key === 'Escape') {
+        handleCloseExpanded();
+      } else if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        handleExpandedFlip();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [expandedIndex, flashcards.length]);
+
+  const expandedFlashcard = expandedIndex !== null ? flashcards[expandedIndex] : null;
+  const showingQuestionExpanded = expandedFlashcard && (questionFirst ? !expandedFlipped : expandedFlipped);
+
   return (
     <Box>
       <SimpleGrid columns={3} spacing={5}>
-        {flashcards.map((flashcard) => {
+        {flashcards.map((flashcard, index) => {
           const isFlipped = flippedCards[flashcard.id];
           // If questionFirst is true: show question on front (!isFlipped), answer on back (isFlipped)
           // If questionFirst is false: show answer on front (!isFlipped), question on back (isFlipped)
@@ -61,7 +114,7 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
               minH={{ base: "200px", md: "200px", xl: "200px" }}
               w={"auto"}
               position="relative"
-              onClick={(e) => handleFlip(flashcard.id, e)}
+              onClick={(e) => handleCardClick(index, e)}
               cursor="pointer"
             >
               <Box
@@ -156,6 +209,128 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
           );
         })}
       </SimpleGrid>
+
+      {/* Expanded Flashcard Modal */}
+      <Modal isOpen={expandedIndex !== null} onClose={handleCloseExpanded} size="xl" isCentered>
+        <ModalOverlay bg="blackAlpha.800" />
+        <ModalContent
+          bg="transparent"
+          boxShadow="none"
+          maxW="600px"
+          p={0}
+        >
+          <Box position="relative">
+            {/* Navigation and Close buttons */}
+            <HStack
+              position="absolute"
+              top="-60px"
+              left="50%"
+              transform="translateX(-50%)"
+              spacing={4}
+              zIndex={20}
+            >
+              <IconButton
+                aria-label="Previous flashcard"
+                icon={<ChevronLeftIcon />}
+                onClick={() => handleNavigate(-1)}
+                colorScheme="teal"
+                size="lg"
+                borderRadius="full"
+              />
+              <IconButton
+                aria-label="Close"
+                icon={<CloseIcon />}
+                onClick={handleCloseExpanded}
+                colorScheme="red"
+                size="lg"
+                borderRadius="full"
+              />
+              <IconButton
+                aria-label="Next flashcard"
+                icon={<ChevronRightIcon />}
+                onClick={() => handleNavigate(1)}
+                colorScheme="teal"
+                size="lg"
+                borderRadius="full"
+              />
+            </HStack>
+
+            {/* Expanded Flashcard */}
+            {expandedFlashcard && (
+              <Box
+                className="flashcard-container-expanded"
+                h="400px"
+                w="600px"
+                position="relative"
+                onClick={handleExpandedFlip}
+                cursor="pointer"
+              >
+                <Box
+                  className={`flashcard ${expandedFlipped ? 'flipped' : ''}`}
+                  h="100%"
+                >
+                  {/* Front side */}
+                  <Box
+                    className="flashcard-front"
+                    p={10}
+                    shadow="2xl"
+                    borderRadius="xl"
+                    bgColor={expandedFlashcard.color}
+                    position="absolute"
+                    width="100%"
+                    height="100%"
+                    display="flex"
+                    flexDirection="column"
+                    justifyContent="center"
+                  >
+                    <Box>
+                      <Box fontWeight="bold" fontSize="xl" mb={4}>
+                        {expandedFlashcard.subject && `〘${expandedFlashcard.subject}〙`}
+                      </Box>
+                      <Divider variant="postit" mb={4} />
+                      <Box fontWeight="bold" fontSize="lg" color="gray.700" mb={3}>
+                        {questionFirst ? "QUESTION:" : "ANSWER:"}
+                      </Box>
+                      <Box fontSize="lg" lineHeight="tall">
+                        {showingQuestionExpanded ? expandedFlashcard.question : expandedFlashcard.answer}
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* Back side */}
+                  <Box
+                    className="flashcard-back"
+                    p={10}
+                    shadow="2xl"
+                    borderRadius="xl"
+                    bgColor={expandedFlashcard.color}
+                    position="absolute"
+                    width="100%"
+                    height="100%"
+                    display="flex"
+                    flexDirection="column"
+                    justifyContent="center"
+                  >
+                    <Box>
+                      <Box fontWeight="bold" fontSize="xl" mb={4}>
+                        {expandedFlashcard.subject && `〘${expandedFlashcard.subject}〙`}
+                      </Box>
+                      <Divider variant="postit" mb={4} />
+                      <Box fontWeight="bold" fontSize="lg" color="gray.700" mb={3}>
+                        {questionFirst ? "ANSWER:" : "QUESTION:"}
+                      </Box>
+                      <Box fontSize="lg" lineHeight="tall">
+                        {showingQuestionExpanded ? expandedFlashcard.answer : expandedFlashcard.question}
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
+            )}
+          </Box>
+        </ModalContent>
+      </Modal>
+
       <ConfirmDelete
         isOpen={isOpen}
         onClose={onClose}

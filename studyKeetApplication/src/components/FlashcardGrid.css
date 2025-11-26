@@ -1,4 +1,5 @@
-.flashcard-container {
+.flashcard-container,
+.flashcard-container-expanded {
   perspective: 1000px;
 }
 
@@ -22,4 +23,8 @@
 
 .flashcard-back {
   transform: rotateY(180deg);
+}
+
+.flashcard-container-expanded .flashcard {
+  transition: transform 0.8s ease;
 }
