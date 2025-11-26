@@ -17,11 +17,14 @@ import {
   ModalFooter,
   FormControl,
   FormLabel,
+  HStack,
+  Checkbox,
 } from "@chakra-ui/react";
-import { ArrowBackIcon } from "@chakra-ui/icons";
+import { ArrowBackIcon, DeleteIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
 import EggCard from "./EggCard.jsx";
 import { useNestContext } from "./NestContext.jsx";
+import ConfirmDelete from "./ConfirmDelete.jsx";
 
 export default function EggGrid({ nest, onBack }) {
   const toast = useToast();
@@ -29,7 +32,57 @@ export default function EggGrid({ nest, onBack }) {
   const { removeEgg, updateEgg } = useNestContext();
   const [editingEgg, setEditingEgg] = useState(null);
   const [newName, setNewName] = useState("");
+  const [selectedEggs, setSelectedEggs] = useState([]);
+  const [selectionMode, setSelectionMode] = useState(false);
   const editDisclosure = useDisclosure();
+  const { isOpen: isBulkOpen, onOpen: onBulkOpen, onClose: onBulkClose } = useDisclosure();
+
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedEggs([]);
+  };
+
+  const toggleEggSelection = (eggId) => {
+    setSelectedEggs(prev => 
+      prev.includes(eggId) 
+        ? prev.filter(id => id !== eggId)
+        : [...prev, eggId]
+    );
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedEggs.length === 0) {
+      toast({
+        title: "No eggs selected",
+        status: "warning",
+        duration: 2000,
+        isClosable: true,
+      });
+      return;
+    }
+    onBulkOpen();
+  };
+
+  const confirmBulkDelete = () => {
+    selectedEggs.forEach(eggId => removeEgg(nest.id, eggId));
+    toast({
+      title: `${selectedEggs.length} egg(s) deleted.`,
+      status: "success",
+      duration: 2000,
+      isClosable: true,
+    });
+    setSelectedEggs([]);
+    setSelectionMode(false);
+    onBulkClose();
+  };
+
+  const selectAll = () => {
+    setSelectedEggs(eggs.map(egg => egg.id));
+  };
+
+  const deselectAll = () => {
+    setSelectedEggs([]);
+  };
 
   const eggs = nest?.eggs ?? [];
 
@@ -93,6 +146,45 @@ export default function EggGrid({ nest, onBack }) {
         {eggs.length} {eggs.length === 1 ? "study material" : "study materials"}
       </Text>
 
+      {/* Bulk Selection Controls */}
+      <HStack mb={4} spacing={3} justify="space-between" flexWrap="wrap">
+        <HStack spacing={3} flexWrap="wrap">
+          <Button
+            size="sm"
+            colorScheme={selectionMode ? "red" : "cyan"}
+            onClick={toggleSelectionMode}
+          >
+            {selectionMode ? "Cancel" : "Select Multiple"}
+          </Button>
+          
+          {selectionMode && eggs.length > 0 && (
+            <>
+              <Button size="sm" variant="outline" bgColor="teal.300" color="teal.600" onClick={selectAll}>
+                Select All
+              </Button>
+              <Button size="sm" variant="outline"  bgColor="teal.300" color="teal.600" onClick={deselectAll}>
+                Deselect All
+              </Button>
+              <Button
+                size="sm"
+                bgColor="orange.300" 
+                onClick={handleBulkDelete}
+                isDisabled={selectedEggs.length === 0}
+                leftIcon={<DeleteIcon />}
+              >
+                Delete Selected ({selectedEggs.length})
+              </Button>
+            </>
+          )}
+        </HStack>
+        
+        {selectionMode && (
+          <Text fontSize="sm" color="gray.600">
+            {selectedEggs.length} of {eggs.length} selected
+          </Text>
+        )}
+      </HStack>
+
       {eggs.length === 0 ? (
         <Box
           borderRadius="xl"
@@ -110,8 +202,28 @@ export default function EggGrid({ nest, onBack }) {
       ) : (
         <Grid templateColumns="repeat(auto-fill, minmax(220px, 1fr))" gap={6}>
           {eggs.map((egg) => (
-            <GridItem key={egg.id}>
-              <EggCard egg={egg} onSelect={handleSelect} onEdit={handleEdit} onDelete={handleDelete} />
+            <GridItem key={egg.id} position="relative">
+              {selectionMode && (
+                <Checkbox
+                  isChecked={selectedEggs.includes(egg.id)}
+                  onChange={() => toggleEggSelection(egg.id)}
+                  position="absolute"
+                  top={2}
+                  left={2}
+                  size="lg"
+                  colorScheme="blue"
+                  zIndex={100}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
+              <EggCard 
+                egg={egg} 
+                onSelect={selectionMode ? undefined : handleSelect} 
+                onEdit={selectionMode ? undefined : handleEdit} 
+                onDelete={selectionMode ? undefined : handleDelete}
+                isSelectable={selectionMode}
+                isSelected={selectedEggs.includes(egg.id)}
+              />
             </GridItem>
           ))}
         </Grid>
@@ -137,6 +249,13 @@ export default function EggGrid({ nest, onBack }) {
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      <ConfirmDelete
+        isOpen={isBulkOpen}
+        onClose={onBulkClose}
+        onConfirm={confirmBulkDelete}
+        message={`Are you sure you want to delete ${selectedEggs.length} study material${selectedEggs.length !== 1 ? 's' : ''}?`}
+      />
     </Box>
   );
 }

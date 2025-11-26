@@ -3,12 +3,12 @@ import { Box, HStack, IconButton, Image, Text, Tooltip } from "@chakra-ui/react"
 import { DeleteIcon, EditIcon } from "@chakra-ui/icons";
 import eggImage from "/assets/images/dinosaur-egg.png";
 
-export default function EggCard({ egg, onSelect, onEdit, onDelete }) {
+export default function EggCard({ egg, onSelect, onEdit, onDelete, isSelectable = false, isSelected = false }) {
   return (
     <Box
       role="group"
       position="relative"
-      cursor="pointer"
+      cursor={isSelectable ? "default" : "pointer"}
       display="flex"
       flexDirection="column"
       alignItems="center"
@@ -16,8 +16,11 @@ export default function EggCard({ egg, onSelect, onEdit, onDelete }) {
       px={2}
       py={6}
       transition="transform 0.2s ease"
-      onClick={() => onSelect(egg)}
-      _hover={{ transform: "translateY(-6px)" }}
+      onClick={() => !isSelectable && onSelect?.(egg)}
+      _hover={{ transform: isSelectable ? "none" : "translateY(-6px)" }}
+      borderWidth={isSelected ? "3px" : "0"}
+      borderColor={isSelected ? "blue.500" : "transparent"}
+      borderRadius="md"
     >
       <Image
         src={eggImage}
@@ -60,31 +63,33 @@ export default function EggCard({ egg, onSelect, onEdit, onDelete }) {
         </Text>
       </Box>
 
-      <HStack position="absolute" top={3} right={3} spacing={1}>
-        <Tooltip label="Edit egg" placement="top">
-          <IconButton
-            aria-label="Edit egg"
-            size="sm"
-            icon={<EditIcon />}
-            onClick={(event) => {
-              event.stopPropagation();
-              onEdit(egg);
-            }}
-          />
-        </Tooltip>
-        <Tooltip label="Delete egg" placement="top">
-          <IconButton
-            aria-label="Delete egg"
-            size="sm"
-            colorScheme="red"
-            icon={<DeleteIcon />}
-            onClick={(event) => {
-              event.stopPropagation();
-              onDelete(egg);
-            }}
-          />
-        </Tooltip>
-      </HStack>
+      {!isSelectable && (
+        <HStack position="absolute" top={3} right={3} spacing={1}>
+          <Tooltip label="Edit egg" placement="top">
+            <IconButton
+              aria-label="Edit egg"
+              size="sm"
+              icon={<EditIcon />}
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit?.(egg);
+              }}
+            />
+          </Tooltip>
+          <Tooltip label="Delete egg" placement="top">
+            <IconButton
+              aria-label="Delete egg"
+              size="sm"
+              colorScheme="red"
+              icon={<DeleteIcon />}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete?.(egg);
+              }}
+            />
+          </Tooltip>
+        </HStack>
+      )}
     </Box>
   );
 }
