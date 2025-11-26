@@ -381,7 +381,7 @@ export default function InputCard() {
                   <VStack 
                     align="stretch" 
                     spacing={3} 
-                    bg="orange.50" 
+                    bg="yellow.100" 
                     p={6} 
                     borderRadius="xl" 
                     border="3px solid" 
@@ -391,7 +391,7 @@ export default function InputCard() {
                   >
                     <FormControl>
                       <FormLabel 
-                        color="orange.800" 
+                        color="orange.300" 
                         fontWeight="bold" 
                         fontSize="md"
                         display="flex"
@@ -410,10 +410,10 @@ export default function InputCard() {
                           setCurrentEggName(newName);
                         }}
                         bg="white"
-                        borderColor="orange.400"
+                        borderColor="orange.200"
                         borderWidth="2px"
                         _focus={{ 
-                          borderColor: "orange.500", 
+                          borderColor: "orange.400", 
                           boxShadow: "0 0 0 3px rgba(251, 146, 60, 0.1)",
                           transform: "scale(1.02)"
                         }}
@@ -440,14 +440,14 @@ export default function InputCard() {
                     
                     {!selectedNestForSaving && eggName.trim() && (
                       <Box 
-                        bg="blue.50" 
+                        bg="pink.50" 
                         p={3} 
                         borderRadius="lg" 
                         border="2px dashed" 
-                        borderColor="blue.300"
+                        borderColor="pink.200"
                       >
-                        <Text fontSize="sm" color="blue.700" textAlign="center" fontWeight="medium">
-                          ✨ Now click a nest below to save "<Text as="span" fontWeight="bold" color="blue.800">{eggName.trim()}</Text>"
+                        <Text fontSize="sm" color="pink.500" textAlign="center" fontWeight="medium">
+                          ✨ Now click a nest below to save "<Text as="span" fontWeight="bold" color="purple.300">{eggName.trim()}</Text>"
                         </Text>
                       </Box>
                     )}
