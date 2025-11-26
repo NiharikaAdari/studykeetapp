@@ -68,6 +68,9 @@ export default function Results() {
         } else if (option !== "Teach" && Array.isArray(parsedResult.result)) {
           setCoverage(parsedResult.result[0]);
           setAccuracy(parsedResult.result[1]);
+        } else if (parsedResult.result) {
+          // For Summarize/Question modes - extract the result string
+          setResults(parsedResult.result);
         } else {
           setResults(results);
         }
@@ -92,9 +95,23 @@ export default function Results() {
   // We display the content inside <pre> (via ResultCard) to preserve bullets and paragraph breaks.
 
   const showResults = savedContentType && savedOption;
+  const showTabs = savedOption === "Teach"; // Only show tabs for Teach mode
+  const isSingleResult = savedOption === "Summary" || savedOption === "Query";
 
   const coverageContent = coverage !== null && coverage !== undefined ? coverage : savedResults;
   const accuracyContent = accuracy !== null && accuracy !== undefined ? accuracy : savedResults;
+
+  // Debug logging
+  console.log("Display state:", {
+    savedOption,
+    showResults,
+    showTabs,
+    isSingleResult,
+    savedResults: savedResults ? `${savedResults.substring(0, 50)}...` : null,
+    coverage: coverage ? `${coverage.substring(0, 50)}...` : null,
+    accuracy: accuracy ? `${accuracy.substring(0, 50)}...` : null,
+    coverageContent: coverageContent ? `${coverageContent.substring(0, 50)}...` : null
+  });
 
   const handleGenerateFlashcards = async () => {
     setIsGenerating(true);
@@ -103,7 +120,7 @@ export default function Results() {
       let content = "";
       
       // Determine source type based on current view and savedOption
-      if (savedOption === "Summarize") {
+      if (savedOption === "Summary") {
         sourceType = "summary";
         content = savedResults || coverageContent;
       } else if (savedOption === "Teach") {
@@ -115,7 +132,7 @@ export default function Results() {
           sourceType = "accuracy";
           content = accuracyContent;
         }
-      } else if (savedOption === "Question") {
+      } else if (savedOption === "Query") {
         sourceType = "qa_answer";
         content = savedResults || coverageContent;
       } else {
@@ -256,48 +273,56 @@ export default function Results() {
           {/* Title - white color */}
           <Heading size="xl" textAlign="center" mb={6} color="yellow.100">
             {savedContentType && savedOption
-              ? `Summary of Your ${savedContentType}:`
+              ? savedOption === "Summary"
+                ? `Summary of Your ${savedContentType}`
+                : savedOption === "Query"
+                ? `Answer from Your ${savedContentType}`
+                : savedOption === "Teach"
+                ? `Evaluation of Your ${savedContentType}`
+                : `Results from Your ${savedContentType}`
               : !savedContentType
               ? "Select your input source"
               : "Select an option"}
           </Heading>
 
-          {/* Tab buttons with teal arrows */}
-          <HStack justify="center" spacing={3} className="segment-row" mb={6}>
-            <IconButton
-              aria-label="previous"
-              icon={<ChevronLeftIcon />}
-              onClick={() => setActiveIndex((s) => (s - 1 + tabs.length) % tabs.length)}
-              colorScheme="teal"
-              variant="solid"
-              size="sm"
-            />
+          {/* Tab buttons with teal arrows - only show for Teach mode */}
+          {showTabs && (
+            <HStack justify="center" spacing={3} className="segment-row" mb={6}>
+              <IconButton
+                aria-label="previous"
+                icon={<ChevronLeftIcon />}
+                onClick={() => setActiveIndex((s) => (s - 1 + tabs.length) % tabs.length)}
+                colorScheme="teal"
+                variant="solid"
+                size="sm"
+              />
 
-            {tabs.map((t, i) => (
-              <Button
-                key={t}
-                onClick={() => setActiveIndex(i)}
-                bg={i === activeIndex ? "yellow.400" : "orange.300"}
-                color="white"
-                borderRadius={10}
-                boxShadow="0 0 0 3px rgba(237, 137, 54)"
-                px={6}
-                fontWeight="bold"
-                _hover={{ bg: i === activeIndex ? "yellow.500" : "orange.400" }}
-              >
-                {t}
-              </Button>
-            ))}
+              {tabs.map((t, i) => (
+                <Button
+                  key={t}
+                  onClick={() => setActiveIndex(i)}
+                  bg={i === activeIndex ? "yellow.400" : "orange.300"}
+                  color="white"
+                  borderRadius={10}
+                  boxShadow="0 0 0 3px rgba(237, 137, 54)"
+                  px={6}
+                  fontWeight="bold"
+                  _hover={{ bg: i === activeIndex ? "yellow.500" : "orange.400" }}
+                >
+                  {t}
+                </Button>
+              ))}
 
-            <IconButton
-              aria-label="next"
-              icon={<ChevronRightIcon />}
-              onClick={() => setActiveIndex((s) => (s + 1) % tabs.length)}
-              colorScheme="teal"
-              variant="solid"
-              size="sm"
-            />
-          </HStack>
+              <IconButton
+                aria-label="next"
+                icon={<ChevronRightIcon />}
+                onClick={() => setActiveIndex((s) => (s + 1) % tabs.length)}
+                colorScheme="teal"
+                variant="solid"
+                size="sm"
+              />
+            </HStack>
+          )}
 
           {/* White card for results */}
           <Box
@@ -310,7 +335,17 @@ export default function Results() {
           >
             <Box>
               {showResults ? (
-                (coverage || accuracy) ? (
+                isSingleResult ? (
+                  // For Summarize and Question - show single result without tabs
+                  <div className="card-stage">
+                    <ResultCard 
+                      key="single" 
+                      title={savedOption === "Summary" ? "Summary" : "Answer"} 
+                      content={coverageContent || "No content available"} 
+                    />
+                  </div>
+                ) : savedOption === "Teach" && (coverage || accuracy) ? (
+                  // For Teach mode - show Coverage/Accuracy tabs
                   <div className="card-stage">
                     {activeIndex === 0 ? (
                       <ResultCard key={0} title="Coverage" content={coverageContent || "No coverage content"} />

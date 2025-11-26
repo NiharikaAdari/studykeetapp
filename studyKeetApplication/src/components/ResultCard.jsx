@@ -3,6 +3,45 @@ import { Box, Heading, Text } from "@chakra-ui/react";
 import "./ResultCard.css";
 
 export default function ResultCard({ title, content }) {
+  // Helper function to highlight quoted text
+  const highlightQuotes = (text) => {
+    if (!text || typeof text !== 'string') return text;
+    
+    // Split by quotes and wrap them with highlighting
+    const parts = [];
+    const regex = /"([^"]*)"/g;
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = regex.exec(text)) !== null) {
+      // Add text before quote
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+      // Add quoted text with highlight
+      parts.push(
+        <Box 
+          as="span" 
+          key={`quote-${match.index}`}
+          bg="yellow.100" 
+          px={1}
+          borderRadius="sm"
+          fontStyle="italic"
+        >
+          "{match[1]}"
+        </Box>
+      );
+      lastIndex = regex.lastIndex;
+    }
+    
+    // Add remaining text after last quote
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+    
+    return parts.length > 0 ? parts : text;
+  };
+
   const formatContent = (text) => {
     if (!text) return null;
 
@@ -44,7 +83,7 @@ export default function ResultCard({ title, content }) {
         elements.push(
           <Box key={`bullet-${index}`} ml={4} mb={2} display="flex" alignItems="flex-start">
             <Text as="span" mr={2} color="#2d3748">•</Text>
-            <Text as="span" color="#2d3748" lineHeight="1.6">{bulletText}</Text>
+            <Text as="span" color="#2d3748" lineHeight="1.6">{highlightQuotes(bulletText)}</Text>
           </Box>
         );
       }
@@ -52,7 +91,7 @@ export default function ResultCard({ title, content }) {
       else if (trimmedLine) {
         elements.push(
           <Text key={`text-${index}`} mb={3} color="#2d3748" lineHeight="1.7">
-            {trimmedLine}
+            {highlightQuotes(trimmedLine)}
           </Text>
         );
       }
