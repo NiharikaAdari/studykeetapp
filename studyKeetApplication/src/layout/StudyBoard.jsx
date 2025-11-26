@@ -126,6 +126,10 @@ export default function StudyBoard() {
       navigate("/notes");
       return;
     }
+        if (option === "Flashcard") {
+      navigate("/flashcards");
+      return;
+    }
     if (!contentType || !content || !option) {
       toast({
         title: "Submission failed",
@@ -559,11 +563,11 @@ export default function StudyBoard() {
                 </Box>
               </SlideFade>
             </GridItem>
-            {/* Progress Tracker */}
+            {/* Flashcards */}
             <GridItem
               colSpan={{ base: 6, md: 3, xl: 2 }}
               rowSpan={2}
-              onClick={() => handleOptionClick("Progress")}
+              onClick={() => handleOptionClick("Flashcard")}
               display="flex"
               alignItems="center"
               justifyContent="center"
@@ -575,13 +579,13 @@ export default function StudyBoard() {
               >
                 <Box
                   backgroundColor={
-                    selectedOption === "Progress" ? "cyan.400" : "cyan.300"
+                    selectedOption === "Flashcard" ? "cyan.400" : "cyan.300"
                   }
                   borderRadius={50}
                   h="100%"
                   w="100%"
                   boxShadow={
-                    selectedOption === "Progress"
+                    selectedOption === "Flashcard"
                       ? "2px 2px 2px gray"
                       : "5px 5px 5px gray"
                   }
@@ -600,16 +604,23 @@ export default function StudyBoard() {
                     mb={5}
                     size={{ base: "2xl", md: "xl", lg: "lg" }}
                   >
-                    Progress Tracker
+                    Flashcard System
                   </Heading>
-                  <Text fontSize={{ base: "2xl", md: "xl", lg: "lg" }}>
-                    ✍️Monitor your learning journey with ease! Stay motivated by
-                    visualizing your achievements.
-                  </Text>
-                  <Text fontSize={{ base: "2xl", md: "xl", lg: "lg" }}>
-                    ✍️Track your progress through various chapters and topics of
-                    your projects or goals.
-                  </Text>
+<Text fontSize={{ base: "2xl", md: "xl", lg: "lg" }} mb={2}>
+        🃏 Build and study your own flashcards — one idea per card.
+      </Text>
+
+      <Text fontSize={{ base: "2xl", md: "xl", lg: "lg" }} mb={2}>
+        🤖 Auto-generate high-quality question/answer cards from your notes.
+      </Text>
+
+      <Text fontSize={{ base: "2xl", md: "xl", lg: "lg" }} mb={2}>
+        🎯 Start a Leitner Learning Session using the Rule of Three.
+      </Text>
+
+      <Text fontSize={{ base: "2xl", md: "xl", lg: "lg" }}>
+        🔁 Or review normally at your own pace.
+      </Text>
                 </Box>
               </SlideFade>
             </GridItem>

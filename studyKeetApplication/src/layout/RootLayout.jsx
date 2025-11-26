@@ -99,7 +99,7 @@ export default function RootLayout() {
                   Flashcards
                 </Button>
               </WrapItem>
-              <WrapItem>
+              {/* <WrapItem>
                 <Button
                   as={NavLink}
                   to="/notes"
@@ -114,7 +114,7 @@ export default function RootLayout() {
                 >
                   Progress Tracker
                 </Button>
-              </WrapItem>
+              </WrapItem> */}
               <WrapItem>
                 <Button
                   as={NavLink}
