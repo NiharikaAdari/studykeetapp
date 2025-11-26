@@ -86,6 +86,22 @@ export default function RootLayout() {
               <WrapItem>
                 <Button
                   as={NavLink}
+                  to="/flashcards"
+                  bgColor={"yellow.200"}
+                  _hover={{ bg: "yellow.300", borderColor: "yellow.400" }}
+                  borderRadius={50}
+                  p={5}
+                  boxShadow="xl"
+                  variant="navOutline"
+                  fontSize="2xl"
+                  color="yellow.700"
+                >
+                  Flashcards
+                </Button>
+              </WrapItem>
+              <WrapItem>
+                <Button
+                  as={NavLink}
                   to="/notes"
                   bgColor={"yellow.200"}
                   _hover={{ bg: "yellow.300", borderColor: "yellow.400" }}

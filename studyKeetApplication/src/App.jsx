@@ -12,8 +12,10 @@ import Home from "./layout/Home.jsx";
 import StudyBoard from "./layout/StudyBoard.jsx";
 import Results from "./layout/Results.jsx";
 import Notesboard from "./layout/Notesboard.jsx";
+import Flashcardsboard from "./layout/Flashcardsboard.jsx";
 import TimeArea from "./layout/TimeArea.jsx";
 import { NoteProvider } from "./components/NoteContext.jsx";
+import { FlashcardProvider } from "./components/FlashcardContext.jsx";
 
 //layout
 import RootLayout from "./layout/RootLayout.jsx";
@@ -33,6 +35,15 @@ const router = createHashRouter(
             {" "}
             <Notesboard />
           </NoteProvider>
+        }
+      />
+      <Route
+        path="flashcards"
+        element={
+          <FlashcardProvider>
+            {" "}
+            <Flashcardsboard />
+          </FlashcardProvider>
         }
       />
     </Route>

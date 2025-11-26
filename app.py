@@ -164,17 +164,25 @@ def answerQuestion(question: str, vector_db: Chroma) -> str:
     )
 
     system_prompt = (
-    """You are an AI study assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question:
-        ###CONTEXT
-        {context}
-        ###QUESTION
-        {input}
-        ###INSTRUCTION:
-        Your job is to answer the question based on the information in the context.
-        If you don't know the answer, just say that you don't know, don't try to make up an answer.
-        Add snippets and quotes of the context you used to answer the question.
-        ###ANSWER (NO PREAMBLE):
-        """
+ """You are a high-performance study tutor trained in the Feynman Technique.
+Answer the student's question using ONLY the retrieved context.
+
+### CONTEXT
+{context}
+
+### QUESTION
+{input}
+
+### INSTRUCTIONS
+- Give a clear, simple explanation as if teaching a beginner.
+- Use short sentences and concrete examples.
+- Include a **1–2 sentence Feynman-style summary** at the end.
+- If context is missing something, say “The context does not include that information.”
+- Include short quoted snippets from the context to support claims (“...”).
+- Do NOT add filler phrases, speculation, or generic introductions.
+
+### ANSWER (NO PREAMBLE):
+"""
     )
     
     prompt = ChatPromptTemplate.from_messages(
@@ -221,26 +229,38 @@ def evaluate_coverage(transcription: str, vector_db: Chroma) -> str:
 
     #system prompt to evaluate coverage
     system_prompt = (
-    """You are a friendly AI assistant that helps the user use the Feynman technique to explain content better. 
-    The user explained the following content:
-    ###User Explanation:
-    {input}
-    ###INSTRUCTION:
-    Your job is to compare the explanation to the original source content retrieved from context. 
-    Identify **What you covered:** and **What was missed:**. 
-    
-    Format your response with:
-    - Clear section headers using **bold text**
-    - Each point as a separate bullet point starting with *
-    - Add a blank line between different points for readability
-    - Break down long explanations into multiple bullet points
-    
-    Talk directly to the user in a friendly way.
-    ###CONTEXT
-    {context}
-    ###ANSWER (NO PREAMBLE):
-    Only compare based on the context.
-    """
+    """You are an intelligent study tutor evaluating how well the user explained the content using the Feynman Technique.
+
+### USER EXPLANATION
+{input}
+
+### SOURCE CONTENT
+{context}
+
+### INSTRUCTIONS
+Your job is to identify:
+1. **What the student covered**  
+2. **What they missed or skipped**  
+3. **Which points should become flashcards (Leitner system)**
+
+Be DIRECT, simple, and factual. No filler language.
+
+### FORMAT
+
+**What you covered (correct, included concepts):**
+* [Clear bullet — one idea per bullet]
+
+**What you missed (important concepts not mentioned):**
+* [Clear bullet — one idea per bullet]
+
+RULES:
+- One bullet = one idea.
+- Do NOT say “You mentioned that…” or “The source states…”
+- Do NOT restate the entire context.
+- Be surgical, clear, and student-friendly.
+
+### ANSWER (NO PREAMBLE):
+"""
     )
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -282,28 +302,42 @@ def evaluate_accuracy(transcription: str, vector_db: Chroma) -> str:
 
     # Create the system prompt to evaluate accuracy
     system_prompt = (
-    """You are a friendly AI assistant that helps the user use the Feynman technique to explain content better. 
-    The user explained the following content:
-    ###User Explanation:
-    {input}
-    ###INSTRUCTION:
-    Your job is to compare the explanation to the original source content retrieved from context. 
-    Identify **What you got correct:** and **What you got wrong:**.
-    
-    Format your response with:
-    - Clear section headers using **bold text**
-    - Each correct point as a separate bullet point starting with *
-    - Each incorrect point as a separate bullet point starting with *
-    - Add a blank line between different points for readability
-    - When listing multiple items, put each on its own bullet point
-    - Include snippets from the context in quotations to prove your claims
-    
-    Talk directly to the user in a friendly way.
-    ###CONTEXT
-    {context}
-    ###ANSWER (NO PREAMBLE):
-    Only compare based on the context.
-    """
+ """You are an intelligent study tutor evaluating the **accuracy** of the user’s explanation.
+
+### USER EXPLANATION
+{input}
+
+### SOURCE CONTENT
+{context}
+
+### INSTRUCTIONS
+Identify:
+1. What the student **got right**  
+2. What they **got wrong or misunderstood**  
+3. Provide corrective versions + proof  
+
+Be direct. No filler.
+
+### FORMAT
+
+**Incorrect or misunderstood:**
+* Said: X → Actually: Y ("quoted proof from context")
+
+**Correct points:**
+* [Accurate point, short and direct]
+
+**Fix-it Flashcards (Leitner):**
+* Q: [What concept was misunderstood?] → A: [Correct version]
+* Q: [What does the context actually say about ___?] → A: [Correct explanation]
+
+RULES:
+- Always use the “Said: X → Actually: Y” format for errors.
+- Quotes key phrases from context only when necessary for evidence.
+- One idea per bullet.
+- No soft language (“seems”, “appears”, “may be”).
+
+### ANSWER (NO PREAMBLE):
+"""
     )
     
     # Setup the prompt for the LLM
@@ -349,7 +383,7 @@ def summary(docs):
     prompt = ChatPromptTemplate.from_messages([
         (
             "system",
-            """You are a helpful study assistant. Summarize the following content clearly and thoroughly.
+            """You are an intelligent study tutor. Summarize the following content clearly and thoroughly.
             
 ### CONTENT
 {context}
@@ -593,6 +627,16 @@ class NoteModel(Base):
     color = Column(String(50))
     timestamp = Column(DateTime, default=datetime.now())
 
+class FlashcardModel(Base):
+    __tablename__ = "flashcards"
+
+    id = Column(Integer, primary_key=True, index=True)
+    subject = Column(String(255))
+    question = Column(Text)
+    answer = Column(Text)
+    color = Column(String(50))
+    timestamp = Column(DateTime, default=datetime.now())
+
 # Create tables
 Base.metadata.create_all(bind=engine)
 
@@ -688,3 +732,77 @@ def delete_note(note_id: int, db: Session = Depends(get_db)):
         db.delete(db_note)
         db.commit()
     return {"message": "Note deleted"}
+
+
+# FLASHCARD ENDPOINTS
+class FlashcardBase(BaseModel):
+    subject: str
+    question: str
+    answer: str
+    color: str
+
+class FlashcardCreate(FlashcardBase):
+    pass
+
+class FlashcardUpdate(FlashcardBase):
+    subject: str
+    question: str
+    answer: str
+    color: str
+
+class FlashcardRead(FlashcardBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+#add flashcard
+@app.post("/flashcards/")
+def add_flashcard(flashcard: FlashcardCreate, db: Session = Depends(get_db)):
+    db_flashcard = FlashcardModel(
+        subject=flashcard.subject,
+        question=flashcard.question,
+        answer=flashcard.answer,
+        color=flashcard.color
+    )
+    db.add(db_flashcard)
+    db.commit()
+    db.refresh(db_flashcard)
+    return db_flashcard
+
+#get flashcards, filter by subject
+@app.get("/flashcards/", response_model=List[FlashcardRead])
+def get_flashcards(subject: Optional[str] = None, db: Session = Depends(get_db)):
+    if subject:
+        return db.query(FlashcardModel).filter(FlashcardModel.subject == subject).all()
+    return db.query(FlashcardModel).all()
+
+#get subjects
+@app.get("/flashcards/subjects", response_model=List[str])
+def get_unique_flashcard_subjects(db: Session = Depends(get_db)):
+    subjects = db.query(distinct(FlashcardModel.subject)).all()
+    return [subject[0] for subject in subjects]
+
+#edit flashcard, update
+@app.put("/flashcards/{flashcard_id}")
+def update_flashcard(flashcard_id: int, flashcard: FlashcardUpdate, db: Session = Depends(get_db)):
+    db_flashcard = db.query(FlashcardModel).filter(FlashcardModel.id == flashcard_id).first()
+    
+    if not db_flashcard:
+        raise HTTPException(status_code=404, detail="Flashcard not found")
+    
+    if db_flashcard:
+        for key, value in flashcard.model_dump().items():
+            setattr(db_flashcard, key, value)
+        db.commit()
+        db.refresh(db_flashcard)
+    return db_flashcard
+
+#delete flashcard
+@app.delete("/flashcards/{flashcard_id}")
+def delete_flashcard(flashcard_id: int, db: Session = Depends(get_db)):
+    db_flashcard = db.query(FlashcardModel).filter(FlashcardModel.id == flashcard_id).first()
+    if db_flashcard:
+        db.delete(db_flashcard)
+        db.commit()
+    return {"message": "Flashcard deleted"}
