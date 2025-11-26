@@ -82,6 +82,7 @@ export default function Timer() {
         alignItems="center"
         height="100%"
         p={5}
+        
       >
         <Box
           borderRadius={50}
