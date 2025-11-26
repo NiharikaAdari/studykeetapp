@@ -20,6 +20,10 @@ const ensureEgg = (egg, overrides = {}) => ({
 
 export const NestProvider = ({ children }) => {
   const [nests, setNests] = useState([]);
+  const [activeNest, setActiveNest] = useState(null);
+  const [highlightMode, setHighlightMode] = useState(false);
+  const [selectedNestForSaving, setSelectedNestForSaving] = useState(null);
+  const [currentEggName, setCurrentEggName] = useState("");
 
   useEffect(() => {
     try {
@@ -98,9 +102,31 @@ export const NestProvider = ({ children }) => {
 
   const getNest = (nestId) => nests.find((nest) => nest.id === nestId) ?? null;
 
+  const selectNestForSaving = (nestId) => {
+    setSelectedNestForSaving(nestId);
+  };
+
   const value = useMemo(
-    () => ({ nests, addNest, updateNest, removeNest, addEgg, updateEgg, removeEgg, getNest }),
-    [nests]
+    () => ({ 
+      nests, 
+      addNest, 
+      updateNest, 
+      removeNest, 
+      addEgg, 
+      updateEgg, 
+      removeEgg, 
+      getNest,
+      activeNest,
+      setActiveNest,
+      highlightMode,
+      setHighlightMode,
+      selectedNestForSaving,
+      selectNestForSaving,
+      setSelectedNestForSaving,
+      currentEggName,
+      setCurrentEggName
+    }),
+    [nests, activeNest, highlightMode, selectedNestForSaving, currentEggName]
   );
 
   return <NestContext.Provider value={value}>{children}</NestContext.Provider>;

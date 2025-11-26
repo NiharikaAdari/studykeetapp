@@ -16,7 +16,17 @@ import NestManager from "./NestManager.jsx";
 import { useNestContext } from "./NestContext.jsx";
 
 export default function NestPanel({ activeNestId, onSelectNest }) {
-  const { nests, addNest, updateNest, removeNest } = useNestContext();
+  const { 
+    nests, 
+    addNest, 
+    updateNest, 
+    removeNest, 
+    highlightMode, 
+    setHighlightMode,
+    selectNestForSaving,
+    selectedNestForSaving,
+    currentEggName 
+  } = useNestContext();
   const toast = useToast();
   const managerDisclosure = useDisclosure();
   const [mode, setMode] = useState("create");
@@ -51,6 +61,35 @@ export default function NestPanel({ activeNestId, onSelectNest }) {
     }
   };
 
+  const handleNestClick = (nest) => {
+    if (highlightMode) {
+      // In highlight mode, check if egg has a name first
+      if (!currentEggName?.trim()) {
+        toast({
+          title: "🥚 Name your egg first!",
+          description: "Please enter a name for your study material above",
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+      
+      // Select this nest for saving
+      selectNestForSaving(nest.id);
+      toast({
+        title: `🪺 ${nest.name} selected!`,
+        description: `Ready to save "${currentEggName.trim()}"`,
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    } else {
+      // Normal mode - just select the nest
+      onSelectNest(nest.id);
+    }
+  };
+
   const handleSubmit = (name) => {
     if (mode === "edit" && targetNest) {
       updateNest(targetNest.id, { name });
@@ -63,14 +102,28 @@ export default function NestPanel({ activeNestId, onSelectNest }) {
   };
 
   return (
-    <Box bg="gray.800" py={4} px={6} boxShadow="inner">
+    <Box 
+      bg="gray.800" 
+      py={4} 
+      px={6} 
+      boxShadow="inner"
+      border={highlightMode ? "3px solid" : "none"}
+      borderColor={highlightMode ? "orange.300" : "transparent"}
+      transition="all 0.3s ease"
+    >
       <HStack justify="space-between" mb={3}>
-        <Text color="white" fontWeight="semibold">
-          Your Nests
+        <Text 
+          color={highlightMode ? "orange.200" : "white"} 
+          fontWeight="semibold"
+          fontSize={highlightMode ? "lg" : "md"}
+        >
+          {highlightMode ? "🪺 Your Nests - Click to Save!" : "Your Nests"}
         </Text>
-        <Button size="sm" colorScheme="teal" leftIcon={<AddIcon />} onClick={handleCreate}>
-          New Nest
-        </Button>
+        {!highlightMode && (
+          <Button size="sm" colorScheme="teal" leftIcon={<AddIcon />} onClick={handleCreate}>
+            New Nest
+          </Button>
+        )}
       </HStack>
 
       <Box overflowX="auto" py={2}>
@@ -80,6 +133,9 @@ export default function NestPanel({ activeNestId, onSelectNest }) {
           ) : (
             nests.map((nest) => {
               const isActive = activeNestId === nest.id;
+              const isSelectedForSaving = selectedNestForSaving === nest.id;
+              const isClickable = highlightMode || !isActive;
+              
               return (
                 <Box
                   key={nest.id}
@@ -87,15 +143,28 @@ export default function NestPanel({ activeNestId, onSelectNest }) {
                   position="relative"
                   minW="180px"
                   borderRadius="xl"
-                  borderWidth={isActive ? "3px" : "2px"}
-                  borderColor={isActive ? "teal.300" : "gray.600"}
-                  bg="teal.600"
+                  borderWidth={isSelectedForSaving ? "4px" : isActive ? "3px" : "2px"}
+                  borderColor={
+                    isSelectedForSaving 
+                      ? "orange.300" 
+                      : isActive 
+                        ? "teal.300" 
+                        : highlightMode 
+                          ? "orange.500" 
+                          : "gray.600"
+                  }
+                  bg={highlightMode ? "orange.600" : "teal.600"}
                   color="white"
                   overflow="hidden"
-                  cursor="pointer"
-                  onClick={() => onSelectNest(nest.id)}
+                  cursor={isClickable ? "pointer" : "default"}
+                  onClick={() => handleNestClick(nest)}
                   transition="all 0.2s ease"
-                  _hover={{ transform: "translateY(-4px)", borderColor: "teal.200" }}
+                  _hover={isClickable ? { 
+                    transform: "translateY(-4px)", 
+                    borderColor: highlightMode ? "orange.200" : "teal.200",
+                    boxShadow: highlightMode ? "0 8px 25px rgba(255, 165, 0, 0.3)" : "lg"
+                  } : {}}
+                  boxShadow={isSelectedForSaving ? "0 8px 25px rgba(255, 165, 0, 0.4)" : "none"}
                 >
                   <Image src={nestImage} alt="Nest" objectFit="cover" h="100px" w="100%" opacity={0.85} />
                   <Box p={3}>
