@@ -38,7 +38,7 @@ const LeitnerSession = ({ isOpen, onClose, questionFirst, subjectFilter }) => {
       setLocalIndex(0);
       setIsFlipped(false);
       setIsComplete(false);
-      setSessionResults({ correct: 0, incorrect: 0 });
+      setSessionResults({ again: 0, hard: 0, good: 0, easy: 0 });
     }
   }, [isOpen]);
 
@@ -109,7 +109,7 @@ const LeitnerSession = ({ isOpen, onClose, questionFirst, subjectFilter }) => {
     setLocalIndex(0);
     setIsFlipped(false);
     setIsComplete(false);
-    setSessionResults({ correct: 0, incorrect: 0 });
+    setSessionResults({ again: 0, hard: 0, good: 0, easy: 0 });
     setLocalCards([]);
     onClose();
   };
@@ -120,7 +120,7 @@ const LeitnerSession = ({ isOpen, onClose, questionFirst, subjectFilter }) => {
     setLocalIndex(0);
     setIsFlipped(false);
     setIsComplete(false);
-    setSessionResults({ correct: 0, incorrect: 0 });
+    setSessionResults({ again: 0, hard: 0, good: 0, easy: 0 });
   };
 
   if (!isOpen) return null;
@@ -132,23 +132,47 @@ const LeitnerSession = ({ isOpen, onClose, questionFirst, subjectFilter }) => {
         <ModalOverlay bg="blackAlpha.800" />
         <ModalContent bg="teal.300" p={8} borderRadius="xl">
           <VStack spacing={6}>
-            <Heading size="2xl" color="white">🎉 Session Complete!</Heading>
+            <Heading size="2xl" color="white">🎉 Learning Session Complete!</Heading>
             
             <Box bg="white" p={6} borderRadius="lg" width="100%" textAlign="center">
               <VStack spacing={4}>
                 <Text fontSize="2xl" fontWeight="bold">Results</Text>
-                <HStack spacing={8} justify="center">
+                <HStack spacing={4} justify="center" wrap="wrap">
                   <VStack>
-                    <Text fontSize="4xl" color="green.500" fontWeight="bold">
-                      {sessionResults.correct}
-                    </Text>
-                    <Text fontSize="lg" color="gray.600">Correct</Text>
+                    <Box bg="pink.400" p={3} borderRadius="lg" minW="80px">
+                      <Text fontSize="3xl" color="white" fontWeight="bold">
+                        {sessionResults.again}
+                      </Text>
+                    </Box>
+                    <Text fontSize="md" color="gray.600">Again</Text>
+                    <Text fontSize="xs" color="gray.500">(15m)</Text>
                   </VStack>
                   <VStack>
-                    <Text fontSize="4xl" color="red.500" fontWeight="bold">
-                      {sessionResults.incorrect}
-                    </Text>
-                    <Text fontSize="lg" color="gray.600">Incorrect</Text>
+                    <Box bg="red.400" p={3} borderRadius="lg" minW="80px">
+                      <Text fontSize="3xl" color="white" fontWeight="bold">
+                        {sessionResults.hard}
+                      </Text>
+                    </Box>
+                    <Text fontSize="md" color="gray.600">Hard</Text>
+                    <Text fontSize="xs" color="gray.500">(1d)</Text>
+                  </VStack>
+                  <VStack>
+                    <Box bg="cyan.400" p={3} borderRadius="lg" minW="80px">
+                      <Text fontSize="3xl" color="white" fontWeight="bold">
+                        {sessionResults.good}
+                      </Text>
+                    </Box>
+                    <Text fontSize="md" color="gray.600">Good</Text>
+                    <Text fontSize="xs" color="gray.500">(2d)</Text>
+                  </VStack>
+                  <VStack>
+                    <Box bg="green.400" p={3} borderRadius="lg" minW="80px">
+                      <Text fontSize="3xl" color="white" fontWeight="bold">
+                        {sessionResults.easy}
+                      </Text>
+                    </Box>
+                    <Text fontSize="md" color="gray.600">Easy</Text>
+                    <Text fontSize="xs" color="gray.500">(7d)</Text>
                   </VStack>
                 </HStack>
                 <Divider my={2} />
@@ -160,20 +184,20 @@ const LeitnerSession = ({ isOpen, onClose, questionFirst, subjectFilter }) => {
 
             <HStack spacing={4}>
               <Button
-                colorScheme="orange"
+                bgColor="orange.400"
+                color="white"
                 size="lg"
                 onClick={handleRestart}
+                _hover={{ bg: "orange.500" }}
               >
                 Review More Cards
               </Button>
               <Button
-                colorScheme="teal"
-                variant="outline"
+                bgColor="teal.400"
+                color="white"
                 size="lg"
                 onClick={handleClose}
-                color="white"
-                borderColor="white"
-                _hover={{ bg: "whiteAlpha.200" }}
+                _hover={{ bg: "teal.500" }}
               >
                 Back to Flashcards
               </Button>

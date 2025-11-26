@@ -1066,3 +1066,277 @@ def get_session_preview(db: Session = Depends(get_db)):
     }
     
     return preview
+
+
+# FLASHCARD GENERATION FROM RESULTS
+MASTER_WRAPPER = """
+You are an assistant that must follow the EXACT formatting rules.
+
+Respond ONLY with valid JSON.
+No explanations.
+No commentary.
+No extra text.
+"""
+
+SUMMARY_FLASHCARD_PROMPT = """
+You are a high-quality study tutor. Extract flashcards from this summary.
+
+### INPUT SUMMARY
+{input}
+
+### GOAL
+Create essential-concept flashcards suitable for Leitner spaced repetition.
+
+### RULES
+- Each card must contain exactly ONE core idea.
+- Question must test understanding or recall of the concept.
+- Answers must be **short, direct, factual**.
+- No filler words.
+- Avoid trivial questions (e.g., "What is the topic about?").
+- Avoid copying large chunks of text.
+
+### OUTPUT FORMAT
+ONLY return JSON:
+[
+  {{ "q": "...", "a": "..." }}
+]
+"""
+
+COVERAGE_FLASHCARD_PROMPT = """
+Extract high-value flashcards from the COVERAGE evaluation.
+
+### INPUT COVERAGE
+{input}
+
+### GOAL
+Turn "missed concepts" and "covered concepts" into strong recall cards.
+
+### RULES
+- PRIORITIZE missed concepts.
+- One idea per card.
+- The question must force recall (avoid trivial phrasing).
+- The answer must be short and factual.
+- If the input includes bullet lists, convert each bullet into a card if meaningful.
+- Do NOT include phrases like "The student missed..."
+
+### OUTPUT FORMAT
+JSON only:
+[
+  {{ "q": "...", "a": "..." }}
+]
+"""
+
+ACCURACY_FLASHCARD_PROMPT = """
+Extract flashcards from the ACCURACY evaluation.
+
+### INPUT ACCURACY
+{input}
+
+### GOAL
+Convert misconceptions and correct statements into flashcards.
+
+### RULES
+- Use "Said X → Actually Y" sections to build correction cards.
+- Question should target the CORRECT concept (not the mistake).
+- The answer should give the correct explanation.
+- If a point was correct, you may create a card, but prioritize corrections.
+- Keep questions simple and retrieval-friendly.
+
+### OUTPUT FORMAT
+JSON ONLY:
+[
+  {{ "q": "...", "a": "..." }}
+]
+"""
+
+QA_FLASHCARD_PROMPT = """
+Extract flashcards from this question-answer explanation.
+
+### INPUT
+{input}
+
+### GOAL
+Create cards that help the student remember the key concepts required to answer similar questions.
+
+### RULES
+- Use the explanation and quoted supporting context.
+- Each card must be a single concept.
+- Avoid overly narrow questions (e.g., numbers unless essential).
+- Keep answers short and factual.
+
+### OUTPUT FORMAT
+JSON:
+[
+  {{ "q": "...", "a": "..." }}
+]
+"""
+
+class FlashcardGenerationRequest(BaseModel):
+    source_type: str  # "summary", "coverage", "accuracy", "qa_answer"
+    content: str
+    subject: Optional[str] = "General"
+
+@app.post("/flashcards/generate-preview")
+async def generate_flashcards_preview(request: FlashcardGenerationRequest):
+    """Generate flashcards without saving - for preview only"""
+    try:
+        print(f"Received flashcard preview request: source_type={request.source_type}")
+        
+        # Select the appropriate prompt
+        if request.source_type == "summary":
+            selected_prompt = SUMMARY_FLASHCARD_PROMPT
+        elif request.source_type == "coverage":
+            selected_prompt = COVERAGE_FLASHCARD_PROMPT
+        elif request.source_type == "accuracy":
+            selected_prompt = ACCURACY_FLASHCARD_PROMPT
+        elif request.source_type == "qa_answer":
+            selected_prompt = QA_FLASHCARD_PROMPT
+        else:
+            raise HTTPException(status_code=400, detail="Invalid source_type")
+        
+        # Build the full prompt
+        full_prompt = MASTER_WRAPPER + "\n" + selected_prompt.format(input=request.content)
+        
+        # Call the LLM
+        llm = ChatGroq(
+            temperature=0,
+            model=GROQ_MODEL,
+            groq_api_key=GROQ_API_KEY
+        )
+        
+        print("Calling LLM to generate flashcard preview...")
+        response = llm.invoke(full_prompt)
+        result_text = response.content.strip()
+        
+        # Parse JSON response
+        flashcards_data = None
+        try:
+            flashcards_data = json.loads(result_text)
+        except json.JSONDecodeError:
+            import re
+            json_match = re.search(r'\[\s*\{.*?\}\s*\]', result_text, re.DOTALL)
+            if json_match:
+                try:
+                    flashcards_data = json.loads(json_match.group(0))
+                except:
+                    pass
+            
+            if not flashcards_data:
+                raise HTTPException(status_code=500, detail="Failed to parse LLM response as JSON")
+        
+        if not flashcards_data or not isinstance(flashcards_data, list):
+            raise HTTPException(status_code=500, detail="LLM did not return a valid flashcard array")
+        
+        print(f"Generated {len(flashcards_data)} flashcards for preview")
+        
+        return {
+            "flashcards": flashcards_data,
+            "count": len(flashcards_data)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error generating flashcard preview: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/flashcards/generate")
+async def generate_flashcards(request: FlashcardGenerationRequest, db: Session = Depends(get_db)):
+    try:
+        print(f"Received flashcard generation request: source_type={request.source_type}, subject={request.subject}")
+        print(f"Content length: {len(request.content)} characters")
+        
+        # Select the appropriate prompt
+        if request.source_type == "summary":
+            selected_prompt = SUMMARY_FLASHCARD_PROMPT
+        elif request.source_type == "coverage":
+            selected_prompt = COVERAGE_FLASHCARD_PROMPT
+        elif request.source_type == "accuracy":
+            selected_prompt = ACCURACY_FLASHCARD_PROMPT
+        elif request.source_type == "qa_answer":
+            selected_prompt = QA_FLASHCARD_PROMPT
+        else:
+            raise HTTPException(status_code=400, detail="Invalid source_type")
+        
+        # Build the full prompt
+        full_prompt = MASTER_WRAPPER + "\n" + selected_prompt.format(input=request.content)
+        
+        # Call the LLM
+        llm = ChatGroq(
+            temperature=0,
+            model=GROQ_MODEL,
+            groq_api_key=GROQ_API_KEY
+        )
+        
+        print("Calling LLM to generate flashcards...")
+        response = llm.invoke(full_prompt)
+        result_text = response.content.strip()
+        print(f"LLM Response: {result_text[:500]}")  # First 500 chars
+        
+        # Parse JSON response
+        flashcards_data = None
+        try:
+            flashcards_data = json.loads(result_text)
+        except json.JSONDecodeError as je:
+            print(f"JSON decode error: {je}")
+            # Try to extract JSON from response if wrapped in markdown
+            import re
+            # Try to find JSON array in the response
+            json_match = re.search(r'\[\s*\{.*?\}\s*\]', result_text, re.DOTALL)
+            if json_match:
+                try:
+                    flashcards_data = json.loads(json_match.group(0))
+                    print("Successfully extracted JSON from markdown")
+                except:
+                    pass
+            
+            if not flashcards_data:
+                print(f"Could not parse JSON. Raw response: {result_text}")
+                raise HTTPException(status_code=500, detail=f"Failed to parse LLM response as JSON: {str(je)}")
+        
+        if not flashcards_data or not isinstance(flashcards_data, list):
+            raise HTTPException(status_code=500, detail="LLM did not return a valid flashcard array")
+        
+        print(f"Parsed {len(flashcards_data)} flashcards from LLM response")
+        
+        # Save flashcards to database
+        saved_flashcards = []
+        colors = ["yellow.300", "pink.300", "blue.300", "green.300", "purple.300"]
+        
+        for idx, card in enumerate(flashcards_data):
+            if "q" not in card or "a" not in card:
+                print(f"Skipping card {idx}: missing q or a fields")
+                continue
+                
+            db_flashcard = FlashcardModel(
+                subject=request.subject,
+                question=card["q"],
+                answer=card["a"],
+                color=colors[idx % len(colors)],
+                leitner_box=1,
+                next_review=datetime.now()
+            )
+            db.add(db_flashcard)
+            saved_flashcards.append({
+                "question": card["q"],
+                "answer": card["a"]
+            })
+        
+        db.commit()
+        print(f"Successfully saved {len(saved_flashcards)} flashcards to database")
+        
+        return {
+            "message": f"Generated and saved {len(saved_flashcards)} flashcards",
+            "flashcards": saved_flashcards,
+            "count": len(saved_flashcards)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error generating flashcards: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))

@@ -11,6 +11,8 @@ import {
   ModalContent,
   HStack,
   Button,
+  Checkbox,
+  Text,
 } from "@chakra-ui/react";
 import { FlashcardContext } from "./FlashcardContext.jsx";
 import { DeleteIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, EditIcon } from "@chakra-ui/icons";
@@ -20,10 +22,13 @@ import "./FlashcardGrid.css";
 const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
   const { flashcards, removeFlashcard } = useContext(FlashcardContext);
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [flashcardToDelete, setFlashcardToDelete] = React.useState(null);
+  const { isOpen: isBulkOpen, onOpen: onBulkOpen, onClose: onBulkClose } = useDisclosure();
+  const [flashcardToDelete, setFlashcardToDelete] = useState(null);
   const [flippedCards, setFlippedCards] = useState({});
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [expandedFlipped, setExpandedFlipped] = useState(false);
+  const [selectedCards, setSelectedCards] = useState([]);
+  const [selectionMode, setSelectionMode] = useState(false);
   const toast = useToast();
 
   const handleDelete = (flashcard) => {
@@ -42,9 +47,56 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
     onClose();
   };
 
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedCards([]);
+  };
+
+  const toggleCardSelection = (cardId) => {
+    setSelectedCards(prev => 
+      prev.includes(cardId) 
+        ? prev.filter(id => id !== cardId)
+        : [...prev, cardId]
+    );
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedCards.length === 0) {
+      toast({
+        title: "No flashcards selected",
+        status: "warning",
+        duration: 2000,
+        isClosable: true,
+      });
+      return;
+    }
+    onBulkOpen();
+  };
+
+  const confirmBulkDelete = () => {
+    selectedCards.forEach(cardId => removeFlashcard(cardId));
+    toast({
+      title: `${selectedCards.length} flashcard(s) deleted.`,
+      status: "success",
+      duration: 2000,
+      isClosable: true,
+    });
+    setSelectedCards([]);
+    setSelectionMode(false);
+    onBulkClose();
+  };
+
+  const selectAll = () => {
+    setSelectedCards(flashcards.map(card => card.id));
+  };
+
+  const deselectAll = () => {
+    setSelectedCards([]);
+  };
+
   const handleFlip = (id, e) => {
-    // Prevent flip when clicking delete button
-    if (e.target.closest('button')) return;
+    // Prevent flip when clicking delete button or in selection mode
+    if (e.target.closest('button') || selectionMode) return;
     setFlippedCards(prev => ({
       ...prev,
       [id]: !prev[id]
@@ -52,8 +104,8 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
   };
 
   const handleCardClick = (index, e) => {
-    // Prevent opening modal when clicking delete button
-    if (e.target.closest('button')) return;
+    // Prevent opening modal when clicking delete button or in selection mode
+    if (e.target.closest('button') || selectionMode) return;
     setExpandedIndex(index);
     setExpandedFlipped(false);
   };
@@ -104,6 +156,45 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
 
   return (
     <Box>
+      {/* Bulk Selection Controls */}
+      <HStack mb={4} spacing={3} justify="space-between">
+        <HStack spacing={3}>
+          <Button
+            size="sm"
+            colorScheme={selectionMode ? "red" : "cyan"}
+            onClick={toggleSelectionMode}
+          >
+            {selectionMode ? "Cancel" : "Select Multiple"}
+          </Button>
+          
+          {selectionMode && (
+            <>
+              <Button size="sm" variant="outline" color="white" onClick={selectAll}>
+                Select All
+              </Button>
+              <Button size="sm" variant="outline" color="white" onClick={deselectAll}>
+                Deselect All
+              </Button>
+              <Button
+                size="sm"
+                colorScheme="red"
+                onClick={handleBulkDelete}
+                isDisabled={selectedCards.length === 0}
+                leftIcon={<DeleteIcon />}
+              >
+                Delete Selected ({selectedCards.length})
+              </Button>
+            </>
+          )}
+        </HStack>
+        
+        {selectionMode && (
+          <Text fontSize="sm" color="gray.400">
+            {selectedCards.length} of {flashcards.length} selected
+          </Text>
+        )}
+      </HStack>
+
       <SimpleGrid columns={3} spacing={5}>
         {flashcards.map((flashcard, index) => {
           const isFlipped = flippedCards[flashcard.id];
@@ -119,9 +210,32 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
               minH={{ base: "200px", md: "200px", xl: "200px" }}
               w={"auto"}
               position="relative"
-              onClick={(e) => handleCardClick(index, e)}
+              onClick={(e) => {
+                if (selectionMode) {
+                  toggleCardSelection(flashcard.id);
+                } else {
+                  handleCardClick(index, e);
+                }
+              }}
               cursor="pointer"
+              borderWidth={selectedCards.includes(flashcard.id) ? "4px" : "0px"}
+              borderColor={selectedCards.includes(flashcard.id) ? "blue.500" : "transparent"}
+              borderRadius="md"
+              transition="all 0.2s"
             >
+              {selectionMode && (
+                <Checkbox
+                  isChecked={selectedCards.includes(flashcard.id)}
+                  onChange={() => toggleCardSelection(flashcard.id)}
+                  position="absolute"
+                  top={2}
+                  left={2}
+                  size="lg"
+                  colorScheme="blue"
+                  zIndex={100}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
               <Box
                 className={`flashcard ${isFlipped ? 'flipped' : ''}`}
                 h="100%"
@@ -199,37 +313,41 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
                   display="flex"
                   flexDirection="column"
                 >
-                  <IconButton
-                    icon={<EditIcon />}
-                    aria-label="Edit Flashcard"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEditFlashcard(flashcard);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    position="absolute"
-                    top={1}
-                    right={9}
-                    h={6}
-                    w={6}
-                    minW={6}
-                    zIndex="10"
-                  />
-                  <IconButton
-                    icon={<DeleteIcon />}
-                    aria-label="Delete Flashcard"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(flashcard);
-                    }}
-                    position="absolute"
-                    top={1}
-                    right={1}
-                    h={6}
-                    w={6}
-                    minW={6}
-                    zIndex="10"
-                  />
+                  {!selectionMode && (
+                    <>
+                      <IconButton
+                        icon={<EditIcon />}
+                        aria-label="Edit Flashcard"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditFlashcard(flashcard);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        position="absolute"
+                        top={1}
+                        right={9}
+                        h={6}
+                        w={6}
+                        minW={6}
+                        zIndex="10"
+                      />
+                      <IconButton
+                        icon={<DeleteIcon />}
+                        aria-label="Delete Flashcard"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(flashcard);
+                        }}
+                        position="absolute"
+                        top={1}
+                        right={1}
+                        h={6}
+                        w={6}
+                        minW={6}
+                        zIndex="10"
+                      />
+                    </>
+                  )}
                   <Box>
                     <Box fontWeight="bold">
                       {flashcard.subject && `〘${flashcard.subject}〙`}
@@ -381,6 +499,13 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
         isOpen={isOpen}
         onClose={onClose}
         onConfirm={confirmDelete}
+      />
+
+      <ConfirmDelete
+        isOpen={isBulkOpen}
+        onClose={onBulkClose}
+        onConfirm={confirmBulkDelete}
+        message={`Are you sure you want to delete ${selectedCards.length} flashcard${selectedCards.length !== 1 ? 's' : ''}?`}
       />
     </Box>
   );

@@ -116,18 +116,22 @@ const ReviewSession = ({ isOpen, onClose, cards, questionFirst }) => {
             <Box bg="white" p={6} borderRadius="lg" width="100%" textAlign="center">
               <VStack spacing={4}>
                 <Text fontSize="2xl" fontWeight="bold">Results</Text>
-                <HStack spacing={8} justify="center">
+                <HStack spacing={6} justify="center" wrap="wrap">
                   <VStack>
-                    <Text fontSize="4xl" color="green.500" fontWeight="bold">
-                      {sessionResults.correct}
-                    </Text>
-                    <Text fontSize="lg" color="gray.600">Correct</Text>
+                    <Box bg="green.400" p={3} borderRadius="lg" minW="100px">
+                      <Text fontSize="3xl" color="white" fontWeight="bold">
+                        {sessionResults.correct}
+                      </Text>
+                    </Box>
+                    <Text fontSize="md" color="gray.600">Correct</Text>
                   </VStack>
                   <VStack>
-                    <Text fontSize="4xl" color="red.500" fontWeight="bold">
-                      {sessionResults.incorrect}
-                    </Text>
-                    <Text fontSize="lg" color="gray.600">Incorrect</Text>
+                    <Box bg="red.400" p={3} borderRadius="lg" minW="100px">
+                      <Text fontSize="3xl" color="white" fontWeight="bold">
+                        {sessionResults.incorrect}
+                      </Text>
+                    </Box>
+                    <Text fontSize="md" color="gray.600">Incorrect</Text>
                   </VStack>
                 </HStack>
                 <Divider my={2} />
@@ -135,7 +139,7 @@ const ReviewSession = ({ isOpen, onClose, cards, questionFirst }) => {
                   <Text fontSize="lg" color="gray.700">
                     Total cards reviewed: {totalCards}
                   </Text>
-                  <Text fontSize="xl" fontWeight="bold" color="teal.600">
+                  <Text fontSize="xl" fontWeight="bold" color="purple.600">
                     Accuracy: {accuracy}%
                   </Text>
                 </VStack>
@@ -144,20 +148,20 @@ const ReviewSession = ({ isOpen, onClose, cards, questionFirst }) => {
 
             <HStack spacing={4}>
               <Button
-                colorScheme="orange"
+                bgColor="orange.400"
+                color="white"
                 size="lg"
                 onClick={handleRestart}
+                _hover={{ bg: "orange.500" }}
               >
                 Review Again
               </Button>
               <Button
-                colorScheme="teal"
-                variant="outline"
+                bgColor="teal.400"
+                color="white"
                 size="lg"
                 onClick={handleClose}
-                color="white"
-                borderColor="white"
-                _hover={{ bg: "whiteAlpha.200" }}
+                _hover={{ bg: "teal.500" }}
               >
                 Back to Flashcards
               </Button>

@@ -11,10 +11,23 @@ import {
   Text,
   IconButton,
   HStack,
+  useToast,
+  Spinner,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  VStack,
+  Input,
+  Textarea,
+  useDisclosure,
 } from "@chakra-ui/react";
-import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
+import { ChevronLeftIcon, ChevronRightIcon, DeleteIcon, EditIcon, CheckIcon, CloseIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
 import ResultCard from "../components/ResultCard.jsx";
+import axios from "axios";
 import "./Results.css";
 
 export default function Results() {
@@ -24,10 +37,16 @@ export default function Results() {
   const [coverage, setCoverage] = useState(null);
   const [accuracy, setAccuracy] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [previewFlashcards, setPreviewFlashcards] = useState([]);
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
   const tabs = ["Coverage", "Accuracy"];
   const prevIndex = useRef(0);
 
+  const { isOpen: isPreviewOpen, onOpen: onPreviewOpen, onClose: onPreviewClose } = useDisclosure();
   const navigate = useNavigate();
+  const toast = useToast();
 
   useEffect(() => {
     // Retrieve the saved data from local storage
@@ -76,6 +95,128 @@ export default function Results() {
 
   const coverageContent = coverage !== null && coverage !== undefined ? coverage : savedResults;
   const accuracyContent = accuracy !== null && accuracy !== undefined ? accuracy : savedResults;
+
+  const handleGenerateFlashcards = async () => {
+    setIsGenerating(true);
+    try {
+      let sourceType = "";
+      let content = "";
+      
+      // Determine source type based on current view and savedOption
+      if (savedOption === "Summarize") {
+        sourceType = "summary";
+        content = savedResults || coverageContent;
+      } else if (savedOption === "Teach") {
+        // For Teach mode, use Coverage or Accuracy based on active tab
+        if (activeIndex === 0) {
+          sourceType = "coverage";
+          content = coverageContent;
+        } else {
+          sourceType = "accuracy";
+          content = accuracyContent;
+        }
+      } else if (savedOption === "Question") {
+        sourceType = "qa_answer";
+        content = savedResults || coverageContent;
+      } else {
+        throw new Error("Unknown option type");
+      }
+
+      // Call LLM to generate flashcards (don't save yet)
+      const llmResponse = await axios.post("http://127.0.0.1:8000/flashcards/generate-preview", {
+        source_type: sourceType,
+        content: content
+      });
+
+      if (llmResponse.data.flashcards && llmResponse.data.flashcards.length > 0) {
+        // Store flashcards for preview with subject
+        setPreviewFlashcards(llmResponse.data.flashcards.map(card => ({
+          ...card,
+          subject: savedContentType || "General"
+        })));
+        onPreviewOpen();
+      } else {
+        toast({
+          title: "No flashcards generated",
+          description: "The AI couldn't extract flashcards from this content.",
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+
+    } catch (error) {
+      console.error("Error generating flashcards:", error);
+      const errorMessage = error.response?.data?.detail || error.message || "Failed to generate flashcards";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSaveFlashcards = async () => {
+    setIsSaving(true);
+    try {
+      // Save all approved flashcards
+      const colors = ["yellow.300", "pink.300", "blue.300", "green.300", "purple.300"];
+      
+      for (let i = 0; i < previewFlashcards.length; i++) {
+        const card = previewFlashcards[i];
+        await axios.post("http://127.0.0.1:8000/flashcards", {
+          subject: card.subject,
+          question: card.q || card.question,
+          answer: card.a || card.answer,
+          color: colors[i % colors.length]
+        });
+      }
+
+      toast({
+        title: "Flashcards Saved!",
+        description: `Saved ${previewFlashcards.length} flashcards. Redirecting...`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      onPreviewClose();
+      
+      // Navigate to flashcards page after 1 second
+      setTimeout(() => {
+        navigate("/flashcards");
+      }, 1000);
+
+    } catch (error) {
+      console.error("Error saving flashcards:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save flashcards. Please try again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRemoveCard = (index) => {
+    setPreviewFlashcards(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleEditCard = (index, field, value) => {
+    setPreviewFlashcards(prev => prev.map((card, i) => {
+      if (i === index) {
+        return { ...card, [field]: value };
+      }
+      return card;
+    }));
+  };
 
   return (
     <div className="results-wrap">
@@ -192,8 +333,26 @@ export default function Results() {
             </Box>
           </Box>
 
-          {/* Navigation buttons */}
-          <Box mt={6} display="flex" justifyContent="center">
+          {/* Navigation and Action buttons */}
+          <Box mt={6} display="flex" justifyContent="center" gap={4}>
+            {showResults && (
+              <Button
+                onClick={handleGenerateFlashcards}
+                bgColor="purple.400"
+                _hover={{ bg: "purple.500" }}
+                color="white"
+                borderRadius={10}
+                px={6}
+                py={2}
+                boxShadow="xl"
+                isLoading={isGenerating}
+                loadingText="Generating..."
+                leftIcon={isGenerating ? <Spinner size="sm" /> : null}
+              >
+                🃏 Make Flashcards
+              </Button>
+            )}
+            
             {!savedContentType ? (
               <Button
                 onClick={() => navigate("/source")}
@@ -201,7 +360,8 @@ export default function Results() {
                 _hover={{ bg: "yellow.300", color: "teal.400" }}
                 color="white"
                 borderRadius={10}
-                p={2}
+                px={6}
+                py={2}
                 boxShadow="xl"
               >
                 Go to Source Selection
@@ -213,7 +373,8 @@ export default function Results() {
                 _hover={{ bg: "yellow.300", color: "teal.400" }}
                 color="white"
                 borderRadius={10}
-                p={2}
+                px={6}
+                py={2}
                 boxShadow="xl"
               >
                 Go to Studyboard
@@ -223,6 +384,147 @@ export default function Results() {
         </Box>
         </Box>
       </Box>
+
+      {/* Flashcard Preview Modal */}
+      <Modal isOpen={isPreviewOpen} onClose={onPreviewClose} size="3xl" scrollBehavior="inside">
+        <ModalOverlay bg="blackAlpha.800" />
+        <ModalContent bg="teal.300" maxH="90vh">
+          <ModalHeader color="white" fontSize="2xl">
+            Review Generated Flashcards ({previewFlashcards.length})
+          </ModalHeader>
+          <ModalBody bg="white" borderRadius="lg" mx={4} my={2} maxH="60vh" overflowY="auto">
+            <VStack spacing={4} align="stretch">
+              {previewFlashcards.map((card, index) => (
+                <Box
+                  key={index}
+                  p={4}
+                  bg="gray.50"
+                  borderRadius="lg"
+                  borderWidth="2px"
+                  borderColor="gray.200"
+                  position="relative"
+                >
+                  <HStack justify="space-between" mb={3}>
+                    <Text fontWeight="bold" color="teal.600">
+                      Card {index + 1}
+                    </Text>
+                    <HStack spacing={2}>
+                      {editingIndex === index ? (
+                        <IconButton
+                          icon={<CheckIcon />}
+                          size="sm"
+                          colorScheme="green"
+                          onClick={() => setEditingIndex(null)}
+                          aria-label="Done editing"
+                        />
+                      ) : (
+                        <IconButton
+                          icon={<EditIcon />}
+                          size="sm"
+                          colorScheme="blue"
+                          onClick={() => setEditingIndex(index)}
+                          aria-label="Edit card"
+                        />
+                      )}
+                      <IconButton
+                        icon={<DeleteIcon />}
+                        size="sm"
+                        colorScheme="red"
+                        onClick={() => handleRemoveCard(index)}
+                        aria-label="Remove card"
+                      />
+                    </HStack>
+                  </HStack>
+
+                  <VStack spacing={3} align="stretch">
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={1}>
+                        Question:
+                      </Text>
+                      {editingIndex === index ? (
+                        <Textarea
+                          value={card.q || card.question}
+                          onChange={(e) => handleEditCard(index, 'q', e.target.value)}
+                          size="sm"
+                          bg="white"
+                        />
+                      ) : (
+                        <Text fontSize="md" p={2} bg="white" borderRadius="md">
+                          {card.q || card.question}
+                        </Text>
+                      )}
+                    </Box>
+
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={1}>
+                        Answer:
+                      </Text>
+                      {editingIndex === index ? (
+                        <Textarea
+                          value={card.a || card.answer}
+                          onChange={(e) => handleEditCard(index, 'a', e.target.value)}
+                          size="sm"
+                          bg="white"
+                        />
+                      ) : (
+                        <Text fontSize="md" p={2} bg="white" borderRadius="md">
+                          {card.a || card.answer}
+                        </Text>
+                      )}
+                    </Box>
+
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={1}>
+                        Subject:
+                      </Text>
+                      {editingIndex === index ? (
+                        <Input
+                          value={card.subject}
+                          onChange={(e) => handleEditCard(index, 'subject', e.target.value)}
+                          size="sm"
+                          bg="white"
+                        />
+                      ) : (
+                        <Text fontSize="sm" color="teal.600" fontWeight="semibold">
+                          {card.subject}
+                        </Text>
+                      )}
+                    </Box>
+                  </VStack>
+                </Box>
+              ))}
+
+              {previewFlashcards.length === 0 && (
+                <Box textAlign="center" py={8}>
+                  <Text color="gray.500">No flashcards to preview. All cards were removed.</Text>
+                </Box>
+              )}
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <HStack spacing={3}>
+              <Button
+                colorScheme="red"
+                variant="outline"
+                onClick={onPreviewClose}
+                borderWidth="2px"
+              >
+                Cancel
+              </Button>
+              <Button
+                colorScheme="green"
+                onClick={handleSaveFlashcards}
+                isDisabled={previewFlashcards.length === 0}
+                isLoading={isSaving}
+                loadingText="Saving..."
+                px={8}
+              >
+                Save All ({previewFlashcards.length})
+              </Button>
+            </HStack>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

@@ -41,17 +41,35 @@ export default function Flashcardsboard() {
   };
 
   useEffect(() => {
-    window.scrollTo({
-      top: 350,
-      behavior: "smooth",
-    });
-    fetchSessionStats();
-    loadPreview();
+    const initPage = async () => {
+      try {
+        window.scrollTo({
+          top: 350,
+          behavior: "smooth",
+        });
+        await fetchSessionStats();
+        await loadPreview();
+      } catch (error) {
+        console.error("Error initializing flashcards page:", error);
+        toast({
+          title: "Error loading data",
+          description: "Could not load flashcard data. Please refresh the page.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    };
+    initPage();
   }, []);
 
   const loadPreview = async () => {
-    const preview = await fetchSessionPreview();
-    setSessionPreview(preview);
+    try {
+      const preview = await fetchSessionPreview();
+      setSessionPreview(preview);
+    } catch (error) {
+      console.error("Error loading preview:", error);
+    }
   };
 
   const handleStartSession = async () => {
