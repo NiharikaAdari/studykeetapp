@@ -1,15 +1,198 @@
-Run
+# StudyKeet - AI-Powered Study Assistant
 
+An intelligent study application that uses AI to help students learn more effectively through the Feynman Technique, spaced repetition (Leitner system), and interactive flashcards.
+
+## Features
+
+- 📚 **Smart Content Processing**: Upload PDFs, paste URLs, or enter text directly
+- 🤖 **AI-Powered Q&A**: Ask questions about your study material
+- 📝 **Automated Summarization**: Get concise summaries of complex content
+- 🎤 **Speech Recognition**: Record your explanations for evaluation
+- ✅ **Coverage & Accuracy Grading**: AI evaluates what you know and what you missed
+- 🃏 **Flashcard Generation**: Automatically create flashcards from study sessions
+- 🔄 **Leitner Spaced Repetition**: Optimized review scheduling for long-term retention
+- 📊 **Progress Tracking**: Monitor your learning journey with detailed statistics
+
+## Project Structure
+
+```
+studykeet/
+├── backend/                    # Backend API modules
+│   ├── config.py              # Configuration & environment variables
+│   ├── database.py            # SQLAlchemy models & database setup
+│   ├── schemas.py             # Pydantic validation schemas
+│   ├── routes/                # API endpoints
+│   │   ├── study.py          # Q&A, summarization, grading
+│   │   ├── notes.py          # Notes CRUD operations
+│   │   └── flashcards.py     # Flashcards & Leitner system
+│   └── utils/                 # Utility functions
+│       ├── audio.py          # Audio transcription (Whisper)
+│       ├── document_loader.py # PDF/URL/text processing
+│       ├── rag.py            # RAG & vector database operations
+│       └── flashcard_generator.py # AI flashcard generation
+├── studyKeetApplication/       # Electron frontend
+│   └── src/
+│       ├── components/        # React components
+│       └── layout/           # Page layouts
+├── main.py                    # FastAPI application entry point
+├── requirements.txt           # Python dependencies
+├── start-dev.bat             # Windows startup script
+├── start-dev.sh              # Linux/Mac startup script
+└── .env                      # Environment variables (create this)
+```
+
+## Prerequisites
+
+- **Python 3.11+** (via Conda/Anaconda)
+- **Node.js 16+** and npm
+- **PostgreSQL 12+**
+- **Groq API Key** (for LLM access)
+
+## Setup Instructions
+
+### 1. Environment Setup
+
+Create a conda environment:
+```bash
+conda create -n snakepy311 python=3.11
+conda activate snakepy311
+```
+
+### 2. Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+# Groq API Configuration
+GROQ_API_KEY=your_groq_api_key_here
+GROQ_MODEL=llama-3.3-70b-versatile
+WHISPER_MODEL=whisper-large-v3
+
+# PostgreSQL Database Configuration
+DB_USER=your_db_username
+DB_PASSWORD=your_db_password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=studykeet
+```
+
+### 3. Database Setup
+
+Create the PostgreSQL database:
+```sql
+CREATE DATABASE studykeet;
+```
+
+The application will automatically create the required tables on first run.
+
+### 4. Install Dependencies
+
+#### Backend (Python):
+```bash
 conda activate snakepy311
 pip install -r requirements.txt
-uvicorn app:app --reload
+```
 
-cd to studykeetApplication
+#### Frontend (Node.js):
+```bash
+cd studyKeetApplication
 npm install
+```
+
+## Running the Application
+
+### Option 1: Using the Startup Script (Recommended)
+
+**Windows:**
+```bash
+start-dev.bat
+```
+
+**Linux/Mac:**
+```bash
+chmod +x start-dev.sh
+./start-dev.sh
+```
+
+This will automatically:
+- Activate the conda environment
+- Install dependencies
+- Start the backend server (http://localhost:8000)
+- Start the Electron frontend
+
+### Option 2: Manual Startup
+
+**Terminal 1 - Backend:**
+```bash
+conda activate snakepy311
+uvicorn main:app --reload
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd studyKeetApplication
 npm start
+```
 
+## API Documentation
 
-update
-postgres database you want
-groq models
-groq api key 
+Once the backend is running, visit:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+## Key Technologies
+
+### Backend:
+- **FastAPI**: Modern Python web framework
+- **SQLAlchemy**: Database ORM
+- **LangChain**: LLM orchestration & RAG
+- **Groq**: Fast LLM inference
+- **ChromaDB**: Vector database for semantic search
+- **HuggingFace**: Embeddings model
+
+### Frontend:
+- **Electron**: Cross-platform desktop app
+- **React**: UI framework
+- **Chakra UI**: Component library
+- **Axios**: HTTP client
+
+## Development
+
+### Backend Structure:
+- `backend/routes/`: API endpoints organized by domain
+- `backend/utils/`: Reusable utility functions
+- `backend/config.py`: Centralized configuration
+- `main.py`: Application entry point with router registration
+
+### Adding New Features:
+1. Create new route files in `backend/routes/`
+2. Add utility functions in `backend/utils/`
+3. Register routes in `main.py`
+4. Update frontend components in `studyKeetApplication/src/`
+
+## Troubleshooting
+
+**Database Connection Issues:**
+- Verify PostgreSQL is running
+- Check `.env` database credentials
+- Ensure database exists: `CREATE DATABASE studykeet;`
+
+**Import Errors:**
+- Ensure conda environment is activated
+- Run `pip install -r requirements.txt` again
+
+**Frontend Won't Start:**
+- Delete `node_modules/` and run `npm install` again
+- Check Node.js version: `node --version` (should be 16+)
+
+**Groq API Errors:**
+- Verify your `GROQ_API_KEY` in `.env`
+- Check API rate limits at https://console.groq.com/
+
+## License
+
+MIT License - See LICENSE file for details
+
+## Contributors
+
+Built with ❤️ for better learning 
