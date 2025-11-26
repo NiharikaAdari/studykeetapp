@@ -936,11 +936,6 @@ module.exports = require("util");
 /******/ 	}
 /******/ 	
 /************************************************************************/
-/******/ 	/* webpack/runtime/compat */
-/******/ 	
-/******/ 	if (typeof __webpack_require__ !== 'undefined') __webpack_require__.ab = __dirname + "/native_modules/";
-/******/ 	
-/************************************************************************/
 var __webpack_exports__ = {};
 /*!*********************!*\
   !*** ./src/main.js ***!
@@ -961,7 +956,7 @@ const createWindow = () => {
     width: 800,
     height: 600,
     webPreferences: {
-      preload: 'C:\\Users\\dewdr\\Documents\\studykeet\\studykeet\\studyKeetApplication\\.webpack\\renderer\\main_window\\preload.js'
+      preload: 'C:\\Users\\dewdr\\Documents\\projects\\studykeet\\studykeet\\studyKeetApplication\\.webpack\\renderer\\main_window\\preload.js'
     },
     autoHideMenuBar: true
   });

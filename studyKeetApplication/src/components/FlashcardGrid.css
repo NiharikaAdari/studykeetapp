@@ -25,6 +25,51 @@
   transform: rotateY(180deg);
 }
 
+/* Hide content during flip transition */
+.flashcard-front > * {
+  opacity: 1;
+  transition: opacity 0.15s ease;
+  transition-delay: 0.55s;
+}
+
+.flashcard.flipped .flashcard-front > * {
+  opacity: 0;
+  transition: opacity 0s;
+}
+
+.flashcard-back > * {
+  opacity: 0;
+  transition: opacity 0s;
+}
+
+.flashcard.flipped .flashcard-back > * {
+  opacity: 1;
+  transition: opacity 0.15s ease;
+  transition-delay: 0.55s;
+}
+
 .flashcard-container-expanded .flashcard {
   transition: transform 0.8s ease;
+}
+
+.flashcard-container-expanded .flashcard-front > * {
+  opacity: 1;
+  transition: opacity 0.15s ease;
+  transition-delay: 0.75s;
+}
+
+.flashcard-container-expanded .flashcard.flipped .flashcard-front > * {
+  opacity: 0;
+  transition: opacity 0s;
+}
+
+.flashcard-container-expanded .flashcard-back > * {
+  opacity: 0;
+  transition: opacity 0s;
+}
+
+.flashcard-container-expanded .flashcard.flipped .flashcard-back > * {
+  opacity: 1;
+  transition: opacity 0.15s ease;
+  transition-delay: 0.75s;
 }

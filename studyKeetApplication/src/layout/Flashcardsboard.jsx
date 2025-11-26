@@ -10,19 +10,23 @@ import {
   FormControl,
   FormLabel,
   HStack,
+  Button,
+  useToast,
 } from "@chakra-ui/react";
 import { inView } from "framer-motion";
 
 import AddFlashcard from "../components/AddFlashcard.jsx";
 import FlashcardGrid from "../components/FlashcardGrid.jsx";
+import LeitnerSession from "../components/LeitnerSession.jsx";
 import { FlashcardContext, FlashcardProvider } from "../components/FlashcardContext.jsx";
 
 export default function Flashcardsboard() {
   const [selectedFlashcard, setSelectedFlashcard] = useState(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isSessionOpen, onOpen: onSessionOpen, onClose: onSessionClose } = useDisclosure();
   const [subjectFilter, setSubjectFilter] = useState("");
   const [questionFirst, setQuestionFirst] = useState(true);
-  const { fetchFlashcards, subjects } = useContext(FlashcardContext);
+  const { fetchFlashcards, subjects, fetchDueFlashcards, sessionStats, fetchSessionStats } = useContext(FlashcardContext);
+  const toast = useToast();
 
   const handleSubjectChange = (e) => {
     setSubjectFilter(e.target.value);
@@ -34,7 +38,23 @@ export default function Flashcardsboard() {
       top: 350,
       behavior: "smooth",
     });
+    fetchSessionStats();
   }, []);
+
+  const handleStartSession = async () => {
+    const dueCards = await fetchDueFlashcards();
+    if (dueCards.length === 0) {
+      toast({
+        title: "No cards due",
+        description: "You've reviewed all cards for today!",
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      });
+    } else {
+      onSessionOpen();
+    }
+  };
 
   return (
     <div>
@@ -80,8 +100,28 @@ export default function Flashcardsboard() {
               onChange={(e) => setQuestionFirst(e.target.checked)}
             />
           </FormControl>
+
+          <Button
+            colorScheme="orange"
+            size="lg"
+            onClick={handleStartSession}
+            borderRadius={50}
+            px={8}
+            fontWeight="bold"
+            boxShadow="xl"
+            _hover={{ bg: "yellow.400" }}
+          >
+            🎯 Start Learning Session
+          </Button>
         </Box>
       </SlideFade>
+
+      {/* Leitner Learning Session Modal */}
+      <LeitnerSession 
+        isOpen={isSessionOpen} 
+        onClose={onSessionClose} 
+        questionFirst={questionFirst}
+      />
       
       <Flex
         direction={{ base: "column", md: "row" }}
@@ -130,7 +170,7 @@ export default function Flashcardsboard() {
             <FlashcardGrid
               onEditFlashcard={(flashcard) => {
                 setSelectedFlashcard(flashcard);
-                onOpen();
+                window.scrollTo({ top: 0, behavior: "smooth" });
               }}
               questionFirst={questionFirst}
             />

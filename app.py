@@ -636,6 +636,9 @@ class FlashcardModel(Base):
     answer = Column(Text)
     color = Column(String(50))
     timestamp = Column(DateTime, default=datetime.now())
+    leitner_box = Column(Integer, default=1, nullable=True)
+    next_review = Column(DateTime, default=datetime.now, nullable=True)
+    review_history = Column(Text, nullable=True)
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -752,9 +755,13 @@ class FlashcardUpdate(FlashcardBase):
 
 class FlashcardRead(FlashcardBase):
     id: int
+    leitner_box: Optional[int] = 1
+    next_review: Optional[str] = None
+    review_history: Optional[str] = None
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 #add flashcard
 @app.post("/flashcards/")
@@ -771,11 +778,32 @@ def add_flashcard(flashcard: FlashcardCreate, db: Session = Depends(get_db)):
     return db_flashcard
 
 #get flashcards, filter by subject
-@app.get("/flashcards/", response_model=List[FlashcardRead])
+@app.get("/flashcards/")
 def get_flashcards(subject: Optional[str] = None, db: Session = Depends(get_db)):
-    if subject:
-        return db.query(FlashcardModel).filter(FlashcardModel.subject == subject).all()
-    return db.query(FlashcardModel).all()
+    try:
+        if subject:
+            cards = db.query(FlashcardModel).filter(FlashcardModel.subject == subject).all()
+        else:
+            cards = db.query(FlashcardModel).all()
+        
+        # Convert to dict and ensure Leitner fields exist
+        result = []
+        for card in cards:
+            card_dict = {
+                "id": card.id,
+                "subject": card.subject,
+                "question": card.question,
+                "answer": card.answer,
+                "color": card.color,
+                "leitner_box": getattr(card, 'leitner_box', 1) or 1,
+                "next_review": getattr(card, 'next_review', None),
+                "review_history": getattr(card, 'review_history', None)
+            }
+            result.append(card_dict)
+        return result
+    except Exception as e:
+        print(f"Error fetching flashcards: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 #get subjects
 @app.get("/flashcards/subjects", response_model=List[str])
@@ -806,3 +834,187 @@ def delete_flashcard(flashcard_id: int, db: Session = Depends(get_db)):
         db.delete(db_flashcard)
         db.commit()
     return {"message": "Flashcard deleted"}
+
+
+# LEITNER SPACED REPETITION ENDPOINTS
+from datetime import timedelta
+
+# Migration endpoint to add Leitner columns and update existing flashcards
+@app.post("/flashcards/migrate")
+def migrate_flashcards(db: Session = Depends(get_db)):
+    try:
+        # Try to add columns if they don't exist
+        from sqlalchemy import text
+        
+        # Add leitner_box column
+        try:
+            db.execute(text("ALTER TABLE flashcards ADD COLUMN leitner_box INTEGER DEFAULT 1"))
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"leitner_box column might already exist: {e}")
+        
+        # Add next_review column
+        try:
+            db.execute(text("ALTER TABLE flashcards ADD COLUMN next_review TIMESTAMP DEFAULT CURRENT_TIMESTAMP"))
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"next_review column might already exist: {e}")
+        
+        # Add review_history column
+        try:
+            db.execute(text("ALTER TABLE flashcards ADD COLUMN review_history TEXT"))
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"review_history column might already exist: {e}")
+        
+        # Update any NULL values
+        flashcards = db.query(FlashcardModel).all()
+        updated_count = 0
+        
+        for flashcard in flashcards:
+            if flashcard.leitner_box is None:
+                flashcard.leitner_box = 1
+                updated_count += 1
+            if flashcard.next_review is None:
+                flashcard.next_review = datetime.now()
+                updated_count += 1
+        
+        db.commit()
+        return {"message": f"Migration successful. Updated {updated_count} flashcard fields", "total_cards": len(flashcards)}
+    except Exception as e:
+        return {"message": f"Migration completed with warnings: {str(e)}"}
+
+# Get cards due for review today
+@app.get("/flashcards/due")
+def get_due_flashcards(db: Session = Depends(get_db)):
+    try:
+        now = datetime.now()
+        due_cards = db.query(FlashcardModel).filter(
+            FlashcardModel.next_review <= now
+        ).order_by(FlashcardModel.leitner_box.asc()).all()
+        
+        # Convert to dict manually
+        result = []
+        for card in due_cards:
+            card_dict = {
+                "id": card.id,
+                "subject": card.subject,
+                "question": card.question,
+                "answer": card.answer,
+                "color": card.color,
+                "leitner_box": getattr(card, 'leitner_box', 1) or 1,
+                "next_review": getattr(card, 'next_review', None),
+                "review_history": getattr(card, 'review_history', None)
+            }
+            result.append(card_dict)
+        return result
+    except Exception as e:
+        print(f"Error fetching due flashcards: {e}")
+        # Return all cards if Leitner columns don't exist yet
+        cards = db.query(FlashcardModel).all()
+        result = []
+        for card in cards:
+            card_dict = {
+                "id": card.id,
+                "subject": card.subject,
+                "question": card.question,
+                "answer": card.answer,
+                "color": card.color,
+                "leitner_box": 1,
+                "next_review": None,
+                "review_history": None
+            }
+            result.append(card_dict)
+        return result
+
+# Review a flashcard (mark correct/incorrect)
+class ReviewRequest(BaseModel):
+    result: str  # "correct" or "incorrect"
+
+@app.post("/flashcards/review/{flashcard_id}")
+def review_flashcard(flashcard_id: int, review: ReviewRequest, db: Session = Depends(get_db)):
+    flashcard = db.query(FlashcardModel).filter(FlashcardModel.id == flashcard_id).first()
+    
+    if not flashcard:
+        raise HTTPException(status_code=404, detail="Flashcard not found")
+    
+    # Update Leitner box based on result
+    if review.result == "correct":
+        flashcard.leitner_box = min(flashcard.leitner_box + 1, 3)
+    elif review.result == "incorrect":
+        flashcard.leitner_box = 1
+    else:
+        raise HTTPException(status_code=400, detail="Invalid result. Use 'correct' or 'incorrect'")
+    
+    # Calculate next review date based on box
+    intervals = {
+        1: 1,   # Box 1: 1 day
+        2: 2,   # Box 2: 2 days
+        3: 7    # Box 3: 7 days
+    }
+    
+    days_until_next_review = intervals.get(flashcard.leitner_box, 1)
+    flashcard.next_review = datetime.now() + timedelta(days=days_until_next_review)
+    
+    # Update review history
+    import json
+    history = []
+    if flashcard.review_history:
+        try:
+            history = json.loads(flashcard.review_history)
+        except:
+            history = []
+    
+    history.append({
+        "date": datetime.now().isoformat(),
+        "result": review.result,
+        "box": flashcard.leitner_box
+    })
+    
+    flashcard.review_history = json.dumps(history)
+    
+    db.commit()
+    db.refresh(flashcard)
+    return flashcard
+
+# Reset a flashcard to box 1
+@app.post("/flashcards/reset/{flashcard_id}")
+def reset_flashcard(flashcard_id: int, db: Session = Depends(get_db)):
+    flashcard = db.query(FlashcardModel).filter(FlashcardModel.id == flashcard_id).first()
+    
+    if not flashcard:
+        raise HTTPException(status_code=404, detail="Flashcard not found")
+    
+    flashcard.leitner_box = 1
+    flashcard.next_review = datetime.now()
+    
+    db.commit()
+    db.refresh(flashcard)
+    return flashcard
+
+# Get session statistics
+@app.get("/flashcards/session/stats")
+def get_session_stats(db: Session = Depends(get_db)):
+    now = datetime.now()
+    
+    # Count cards due today
+    due_today = db.query(FlashcardModel).filter(FlashcardModel.next_review <= now).count()
+    
+    # Total cards
+    total_cards = db.query(FlashcardModel).count()
+    
+    # Box distribution
+    box_distribution = {}
+    for box_num in [1, 2, 3]:
+        count = db.query(FlashcardModel).filter(FlashcardModel.leitner_box == box_num).count()
+        box_distribution[box_num] = count
+    
+    return {
+        "due_today": due_today,
+        "total": total_cards,
+        "remaining": due_today,
+        "box_distribution": box_distribution
+    }

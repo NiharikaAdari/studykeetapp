@@ -9,11 +9,11 @@ import {
   Modal,
   ModalOverlay,
   ModalContent,
-  ModalCloseButton,
   HStack,
+  Button,
 } from "@chakra-ui/react";
 import { FlashcardContext } from "./FlashcardContext.jsx";
-import { DeleteIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "@chakra-ui/icons";
+import { DeleteIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, EditIcon } from "@chakra-ui/icons";
 import ConfirmDelete from "./ConfirmDelete.jsx";
 import "./FlashcardGrid.css";
 
@@ -74,6 +74,14 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
     setExpandedFlipped(false);
   };
 
+  const handleEdit = () => {
+    if (expandedIndex !== null) {
+      onEditFlashcard(flashcards[expandedIndex]);
+      handleCloseExpanded();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   useEffect(() => {
     if (expandedIndex === null) return;
     
@@ -93,9 +101,6 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [expandedIndex, flashcards.length]);
-
-  const expandedFlashcard = expandedIndex !== null ? flashcards[expandedIndex] : null;
-  const showingQuestionExpanded = expandedFlashcard && (questionFirst ? !expandedFlipped : expandedFlipped);
 
   return (
     <Box>
@@ -136,6 +141,22 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
                   flexDirection="column"
                 >
                   <IconButton
+                    icon={<EditIcon />}
+                    aria-label="Edit Flashcard"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditFlashcard(flashcard);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    position="absolute"
+                    top={1}
+                    right={9}
+                    h={6}
+                    w={6}
+                    minW={6}
+                    zIndex="10"
+                  />
+                  <IconButton
                     icon={<DeleteIcon />}
                     aria-label="Delete Flashcard"
                     onClick={(e) => {
@@ -147,6 +168,7 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
                     right={1}
                     h={6}
                     w={6}
+                    minW={6}
                     zIndex="10"
                   />
                   <Box>
@@ -178,6 +200,22 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
                   flexDirection="column"
                 >
                   <IconButton
+                    icon={<EditIcon />}
+                    aria-label="Edit Flashcard"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditFlashcard(flashcard);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    position="absolute"
+                    top={1}
+                    right={9}
+                    h={6}
+                    w={6}
+                    minW={6}
+                    zIndex="10"
+                  />
+                  <IconButton
                     icon={<DeleteIcon />}
                     aria-label="Delete Flashcard"
                     onClick={(e) => {
@@ -189,6 +227,7 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
                     right={1}
                     h={6}
                     w={6}
+                    minW={6}
                     zIndex="10"
                   />
                   <Box>
@@ -200,7 +239,7 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
                       {questionFirst ? "ANSWER:" : "QUESTION:"}
                     </Box>
                     <Box ml={2} mr={2} mt={1}>
-                      {showingQuestion ? flashcard.answer : flashcard.question}
+                      {showingQuestion ? flashcard.question : flashcard.answer}
                     </Box>
                   </Box>
                 </Box>
@@ -220,7 +259,7 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
           p={0}
         >
           <Box position="relative">
-            {/* Navigation and Close buttons */}
+            {/* Navigation and Action buttons */}
             <HStack
               position="absolute"
               top="-60px"
@@ -237,6 +276,15 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
                 size="lg"
                 borderRadius="full"
               />
+              <Button
+                leftIcon={<EditIcon />}
+                onClick={handleEdit}
+                colorScheme="orange"
+                size="lg"
+                borderRadius="full"
+              >
+                Edit
+              </Button>
               <IconButton
                 aria-label="Close"
                 icon={<CloseIcon />}
@@ -256,7 +304,7 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
             </HStack>
 
             {/* Expanded Flashcard */}
-            {expandedFlashcard && (
+            {expandedIndex !== null && flashcards[expandedIndex] && (
               <Box
                 className="flashcard-container-expanded"
                 h="400px"
@@ -275,24 +323,23 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
                     p={10}
                     shadow="2xl"
                     borderRadius="xl"
-                    bgColor={expandedFlashcard.color}
+                    bgColor={flashcards[expandedIndex].color}
                     position="absolute"
                     width="100%"
                     height="100%"
                     display="flex"
                     flexDirection="column"
-                    justifyContent="center"
                   >
                     <Box>
-                      <Box fontWeight="bold" fontSize="xl" mb={4}>
-                        {expandedFlashcard.subject && `〘${expandedFlashcard.subject}〙`}
+                      <Box fontWeight="bold" fontSize="md" mb={1}>
+                        {flashcards[expandedIndex].subject && `〘${flashcards[expandedIndex].subject}〙`}
                       </Box>
-                      <Divider variant="postit" mb={4} />
-                      <Box fontWeight="bold" fontSize="lg" color="gray.700" mb={3}>
+                      <Divider variant="postit" mb={2} />
+                      <Box fontWeight="semibold" fontSize="sm" color="gray.600" mb={2}>
                         {questionFirst ? "QUESTION:" : "ANSWER:"}
                       </Box>
                       <Box fontSize="lg" lineHeight="tall">
-                        {showingQuestionExpanded ? expandedFlashcard.question : expandedFlashcard.answer}
+                        {questionFirst ? flashcards[expandedIndex].question : flashcards[expandedIndex].answer}
                       </Box>
                     </Box>
                   </Box>
@@ -303,24 +350,23 @@ const FlashcardGrid = ({ onEditFlashcard, questionFirst }) => {
                     p={10}
                     shadow="2xl"
                     borderRadius="xl"
-                    bgColor={expandedFlashcard.color}
+                    bgColor={flashcards[expandedIndex].color}
                     position="absolute"
                     width="100%"
                     height="100%"
                     display="flex"
                     flexDirection="column"
-                    justifyContent="center"
                   >
                     <Box>
-                      <Box fontWeight="bold" fontSize="xl" mb={4}>
-                        {expandedFlashcard.subject && `〘${expandedFlashcard.subject}〙`}
+                      <Box fontWeight="bold" fontSize="md" mb={1}>
+                        {flashcards[expandedIndex].subject && `〘${flashcards[expandedIndex].subject}〙`}
                       </Box>
-                      <Divider variant="postit" mb={4} />
-                      <Box fontWeight="bold" fontSize="lg" color="gray.700" mb={3}>
+                      <Divider variant="postit" mb={2} />
+                      <Box fontWeight="semibold" fontSize="sm" color="gray.600" mb={2}>
                         {questionFirst ? "ANSWER:" : "QUESTION:"}
                       </Box>
                       <Box fontSize="lg" lineHeight="tall">
-                        {showingQuestionExpanded ? expandedFlashcard.answer : expandedFlashcard.question}
+                        {questionFirst ? flashcards[expandedIndex].answer : flashcards[expandedIndex].question}
                       </Box>
                     </Box>
                   </Box>
