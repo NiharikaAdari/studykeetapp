@@ -166,7 +166,23 @@ export default function NestPanel({ activeNestId, onSelectNest }) {
                   } : {}}
                   boxShadow={isSelectedForSaving ? "0 8px 25px rgba(255, 165, 0, 0.4)" : "none"}
                 >
-                  <Image src={nestImage} alt="Nest" objectFit="cover" h="100px" w="100%" opacity={0.85} />
+                  <Box 
+                    h="100px" 
+                    w="100%" 
+                    display="flex" 
+                    alignItems="center" 
+                    justifyContent="center"
+                    bg="rgba(255,255,255,0.1)"
+                  >
+                    <Image 
+                      src={nestImage} 
+                      alt="Nest" 
+                      objectFit="contain" 
+                      maxH="80px" 
+                      maxW="90%" 
+                      opacity={0.9} 
+                    />
+                  </Box>
                   <Box p={3}>
                     <Text fontWeight="bold" noOfLines={1}>
                       {nest.name}

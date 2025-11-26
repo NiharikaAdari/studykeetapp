@@ -46,6 +46,7 @@ export default function InputCard() {
   const [eggName, setEggName] = useState("");
   const [isAnimatingEgg, setIsAnimatingEgg] = useState(false);
   const [highlightNests, setHighlightNests] = useState(false);
+  const [eggTargetPosition, setEggTargetPosition] = useState({ x: 100, y: 300 });
   const eggAnimationRef = useRef(null);
   const navigate = useNavigate();
   const toast = useToast();
@@ -108,14 +109,37 @@ export default function InputCard() {
   const handleEggDrop = async () => {
     if (!content || !selectedNestForSaving || !eggName.trim()) return;
     
+    // Calculate position of the selected nest
+    const nestElement = document.querySelector(`[data-nest-id="${selectedNestForSaving}"]`);
+    const saveBoxElement = document.querySelector('.save-to-nest-box');
+    
+    let targetX = 0;
+    let targetY = 400;
+    
+    if (nestElement && saveBoxElement) {
+      const nestRect = nestElement.getBoundingClientRect();
+      const saveBoxRect = saveBoxElement.getBoundingClientRect();
+      
+      // Calculate relative position from save box to nest
+      targetX = nestRect.left - saveBoxRect.left + (nestRect.width / 2) - 24; // Center on nest, adjust for egg size
+      targetY = nestRect.top - saveBoxRect.top + (nestRect.height / 2);
+    } else {
+      // Fallback position if nest panel not found - estimate bottom area
+      targetX = Math.random() * 200 - 100; // Random position in bottom area
+      targetY = 400;
+    }
+    
+    // Store target position for animation
+    setEggTargetPosition({ x: targetX, y: targetY });
+    
     setIsAnimatingEgg(true);
     
-    // Animate egg dropping
+    // Animate egg dropping in two phases
     await new Promise((resolve) => {
       setTimeout(() => {
         setIsAnimatingEgg(false);
         resolve();
-      }, 1200);
+      }, 2000);
     });
 
     // Save to nest
@@ -293,12 +317,13 @@ export default function InputCard() {
                   p={4}
                   boxShadow="xl"
                   border="2px solid"
-                  borderColor="cyan.300"
+                  borderColor="yellow.300"
                   position="relative"
                   overflow="hidden"
                   display="flex"
                   alignItems="center"
                   justifyContent="center"
+                  className="save-to-nest-box"
                   _before={{
                     content: '""',
                     position: "absolute",
@@ -319,10 +344,10 @@ export default function InputCard() {
                 <VStack spacing={2} align="center" justify="center">
                   <HStack spacing={3} justify="center" align="center">
                     <Box textAlign="center">
-                      <Text fontSize="lg" fontWeight="bold" color="white" textShadow="0 1px 2px rgba(0,0,0,0.3)">
+                      <Text fontSize="xl" fontWeight="bold" color="white" textShadow="0 1px 2px rgba(0,0,0,0.3)">
                         🪺 Save to Nest
                       </Text>
-                      <Text fontSize="m" color="green.800" fontWeight="medium">
+                      <Text fontSize="lg" color="green.800" fontWeight="medium">
                         Organize your study materials
                       </Text>
                     </Box>
@@ -330,22 +355,33 @@ export default function InputCard() {
                       <Box
                         as={motion.div}
                         animate={{ 
-                          y: [0, 30, 60, 100],
-                          scale: [1, 0.9, 0.7, 0.5],
-                          opacity: [1, 0.8, 0.5, 0],
-                          rotate: [0, 10, -10, 0]
+                          x: [0, eggTargetPosition.x * 0.5, eggTargetPosition.x * 0.8, eggTargetPosition.x, eggTargetPosition.x],
+                          y: [-200, -230, -250, eggTargetPosition.y - 50, eggTargetPosition.y],
+                          scale: [1, 1.1, 1.2, 1.0, 0.8],
+                          opacity: [1, 1, 1, 1, 0.3],
+                          rotate: [0, 15, 25, 35, 45]
                         }}
-                        transition={{ duration: 1.2, ease: "easeIn" }}
-                        fontSize="2xl"
+                        transition={{ 
+                          duration: 2.0,
+                          times: [0, 0.3, 0.6, 0.85, 1.0],
+                          ease: ["easeOut", "easeOut", "easeIn", "easeIn", "easeIn"]
+                        }}
+                        position="fixed"
+                        zIndex={9999}
+                        className="save-to-nest-box"
                       >
-                        🥚
+                        <img 
+                          src="/assets/images/dinosaur-egg.png" 
+                          alt="Sliding egg"
+                          style={{ width: "64px", height: "64px" }}
+                        />
                       </Box>
                     )}
                   </HStack>
                   
                   <VStack spacing={1} align="center">
                     {showNestSelector && !isAnimatingEgg && !selectedNestForSaving && (
-                      <Text fontSize="s" color="yellow.200" fontWeight="bold" textAlign="center">
+                      <Text fontSize="md" color="yellow.200" fontWeight="bold" textAlign="center">
                         👇 Name your egg, then click a nest below
                       </Text>
                     )}
@@ -363,7 +399,7 @@ export default function InputCard() {
                         size="md"
                         variant="solid"
                         bg="yellow.300"
-                        color="green.300"
+                        color="green.400"
                         _hover={{ bg: "yellow.400", transform: "scale(1.15)", boxShadow: "lg" }}
                         onClick={toggleNestSelector}
                         transition="all 0.2s"
