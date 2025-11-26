@@ -19,7 +19,7 @@ DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_NAME = os.getenv("DB_NAME")
 
-
+WHISPER_MODEL  = os.getenv("WHISPER_MODEL")
 #llm
 import langchain_groq
 from langchain_groq import ChatGroq
@@ -41,7 +41,7 @@ def transcribe(audio: UploadFile):
 
         result = groq_client.audio.transcriptions.create(
             file=(audio.filename, audio_bytes),
-            model="whisper-large-v3",
+            model=WHISPER_MODEL,
         )
 
         return result.text
@@ -227,7 +227,15 @@ def evaluate_coverage(transcription: str, vector_db: Chroma) -> str:
     {input}
     ###INSTRUCTION:
     Your job is to compare the explanation to the original source content retrieved from context. 
-    Identify ***what the user covered*** and ***what was missed***. Provide key points and specific details in bullet points. Talk to the user.
+    Identify **What you covered:** and **What was missed:**. 
+    
+    Format your response with:
+    - Clear section headers using **bold text**
+    - Each point as a separate bullet point starting with *
+    - Add a blank line between different points for readability
+    - Break down long explanations into multiple bullet points
+    
+    Talk directly to the user in a friendly way.
     ###CONTEXT
     {context}
     ###ANSWER (NO PREAMBLE):
@@ -280,7 +288,17 @@ def evaluate_accuracy(transcription: str, vector_db: Chroma) -> str:
     {input}
     ###INSTRUCTION:
     Your job is to compare the explanation to the original source content retrieved from context. 
-    Identify ***what the user got correct*** and ***what they got wrong***. Provide snippets from the context to prove your claims in quotations. Talk to the user.
+    Identify **What you got correct:** and **What you got wrong:**.
+    
+    Format your response with:
+    - Clear section headers using **bold text**
+    - Each correct point as a separate bullet point starting with *
+    - Each incorrect point as a separate bullet point starting with *
+    - Add a blank line between different points for readability
+    - When listing multiple items, put each on its own bullet point
+    - Include snippets from the context in quotations to prove your claims
+    
+    Talk directly to the user in a friendly way.
     ###CONTEXT
     {context}
     ###ANSWER (NO PREAMBLE):
@@ -460,18 +478,19 @@ async def summarize(file: UploadFile = File(None), content: str = Form(None), co
     
 
 @app.post("/grade")
-async def grade(audio: UploadFile = File(None), file: UploadFile= File(None), content: str = Form(None), content_type: str = Form(None)):
+async def grade(audio: UploadFile = File(None), file: UploadFile= File(None), content: str = Form(None), content_type: str = Form(None), text: str = Form(None)):
     try:
 
         print("hello")
+        # Accept either an uploaded audio file OR a plain text transcription
         if audio:
             print(f"Received audio file: {audio.filename}")
-            
+            transcription = transcribe(audio)
+        elif text:
+            print("Received text input for grading")
+            transcription = text
         else:
-            raise HTTPException(status_code=400, detail="No audio file provided")
-        # Transcribe the audio
-       
-        transcription = transcribe(audio)
+            raise HTTPException(status_code=400, detail="No audio file or text provided for grading")
         print("transcription", transcription)
         
         print("Received content_type:", content_type)
@@ -505,7 +524,8 @@ async def grade(audio: UploadFile = File(None), file: UploadFile= File(None), co
         # Clear the vector database
         if vector_db is not None:
             delete_vector_db(vector_db)
-        return json.dumps({"result": [coverage, accuracy]})
+        # Return structured JSON with explicit keys for the frontend
+        return JSONResponse(content={"coverage": coverage, "accuracy": accuracy})
         
 
     
