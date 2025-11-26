@@ -11,6 +11,7 @@ import {
   Text,
   Spinner,
   Input,
+  Textarea,
   Button,
 } from "@chakra-ui/react";
 import { inView } from "framer-motion";
@@ -28,6 +29,7 @@ export default function StudyBoard() {
   //util
   const [selectedOption, setSelectedOption] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [teachText, setTeachText] = useState("");
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -135,10 +137,10 @@ export default function StudyBoard() {
       return;
     }
 
-    if (option === "Teach" && !audioBlob) {
+    if (option === "Teach" && !audioBlob && (!teachText || teachText.trim().length === 0)) {
       toast({
-        title: "Audio required",
-        description: "Please record an explanation before submitting.",
+        title: "Explanation required",
+        description: "Please record an explanation or enter text before submitting.",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -165,7 +167,12 @@ export default function StudyBoard() {
         url = "/summarize";
       } else if (option === "Teach") {
         url = "/grade";
-        formData.append("audio", audioBlob, "explanation.wav");
+        // If the user provided text in the Teach textarea, send that instead of audio
+        if (teachText && teachText.trim().length > 0) {
+          formData.append("text", teachText);
+        } else {
+          formData.append("audio", audioBlob, "explanation.wav");
+        }
       } else if (option === "Query") {
         url = "/answer_question";
         formData.append("question", query); // Append the question for the Query option
@@ -187,12 +194,26 @@ export default function StudyBoard() {
         duration: 5000,
         isClosable: true,
       });
-      // Parsing the nested JSON string
-      const parsedData = JSON.parse(response.data);
-      const result = parsedData.result;
 
-      console.log("response", result);
-      localStorage.setItem("result", result);
+      // Handle responses that may be JSON string (old backend) or object (new backend)
+      let parsedData;
+      if (typeof response.data === "string") {
+        try {
+          parsedData = JSON.parse(response.data);
+        } catch (e) {
+          parsedData = response.data;
+        }
+      } else {
+        parsedData = response.data;
+      }
+
+      // Store a stable JSON string representation so Results.jsx can parse it
+      try {
+        localStorage.setItem("result", JSON.stringify(parsedData));
+      } catch (e) {
+        // fallback to raw string
+        localStorage.setItem("result", String(parsedData));
+      }
       navigate("/results");
     } catch (error) {
       toast({
@@ -515,6 +536,17 @@ export default function StudyBoard() {
                       🗣️ Start Recording
                     </Button>
                   )}
+
+                  <Box mt={4}>
+                    <Textarea
+                      placeholder="Or paste/type your explanation here instead of recording..."
+                      value={teachText}
+                      onChange={(e) => setTeachText(e.target.value)}
+                      size="md"
+                      minH="120px"
+                      bg="white"
+                    />
+                  </Box>
 
                   {audioUrl && (
                     <Box mt={4}>
