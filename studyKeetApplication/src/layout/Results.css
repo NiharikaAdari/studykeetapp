@@ -1,0 +1,30 @@
+.results-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 18px 8px;
+}
+
+.results-card-outer {
+  width: 100%;
+  max-width: 980px;
+}
+
+.segment-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-stage {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding-top: 18px;
+}
+
+/* Make sure pre content doesn't overflow horizontally */
+.result-card pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}

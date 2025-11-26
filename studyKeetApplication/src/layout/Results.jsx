@@ -1,20 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
-  SlideFade,
   Box,
   Card,
   CardHeader,
   CardBody,
-  CardFooter,
   Flex,
   Spacer,
   Heading,
   Button,
   Text,
-  Highlight,
+  IconButton,
+  HStack,
 } from "@chakra-ui/react";
+import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
-import { inView } from "framer-motion";
+import ResultCard from "../components/ResultCard.jsx";
+import "./Results.css";
 
 export default function Results() {
   const [savedResults, setResults] = useState("");
@@ -22,6 +23,9 @@ export default function Results() {
   const [savedOption, setOption] = useState("");
   const [coverage, setCoverage] = useState(null);
   const [accuracy, setAccuracy] = useState(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const tabs = ["Coverage", "Accuracy"];
+  const prevIndex = useRef(0);
 
   const navigate = useNavigate();
 
@@ -38,7 +42,11 @@ export default function Results() {
       console.log("Raw results data:", results);
       try {
         const parsedResult = JSON.parse(results);
-        if (option !== "Teach" && Array.isArray(parsedResult.result)) {
+        // adapt to new backend shape if present
+        if (parsedResult.coverage || parsedResult.accuracy) {
+          setCoverage(parsedResult.coverage ?? "");
+          setAccuracy(parsedResult.accuracy ?? "");
+        } else if (option !== "Teach" && Array.isArray(parsedResult.result)) {
           setCoverage(parsedResult.result[0]);
           setAccuracy(parsedResult.result[1]);
         } else {
@@ -50,145 +58,171 @@ export default function Results() {
       }
     }
   }, []);
-  const renderProcessedText = (text) => {
-    return text.split("\n\n").map((paragraph, index) => {
-      // Check if the paragraph should be a heading
-      if (paragraph.startsWith("**") && paragraph.endsWith("**")) {
-        return (
-          <Heading as="h3" size="lg" key={index} mt={4} mb={2}>
-            {paragraph.replace(/\*\*/g, "")}
-          </Heading>
-        );
-      } else {
-        // Process each line within the paragraph
-        return paragraph.split("\n").map((line, lineIndex) => {
-          // Split by '**' to apply bold styling within a line
-          const parts = line.split(/\*\*(.*?)\*\*/);
-
-          // Split by '"' to apply highlight styling within a line
-          const highlightedParts = parts.flatMap((part) =>
-            part.split(/"(.*?)"/).map((subPart, subIndex) =>
-              subIndex % 2 === 1 ? (
-                <Highlight
-                  key={subIndex}
-                  query={subPart}
-                  styles={{ bg: "yellow.200", fontWeight: "bold" }}
-                >
-                  {subPart}
-                </Highlight>
-              ) : (
-                subPart
-              )
-            )
-          );
-
-          return (
-            <Text fontSize="lg" key={`${index}-${lineIndex}`} mt={2} mb={2}>
-              {highlightedParts.map((part, partIndex) =>
-                typeof part === "string" ? (
-                  part
-                ) : (
-                  <React.Fragment key={partIndex}>{part}</React.Fragment>
-                )
-              )}
-            </Text>
-          );
-        });
+  
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === "ArrowLeft") {
+        setActiveIndex((s) => (s - 1 + tabs.length) % tabs.length);
+      } else if (e.key === "ArrowRight") {
+        setActiveIndex((s) => (s + 1) % tabs.length);
       }
-    });
-  };
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  // We display the content inside <pre> (via ResultCard) to preserve bullets and paragraph breaks.
+
+  const showResults = savedContentType && savedOption;
+
+  const coverageContent = coverage !== null && coverage !== undefined ? coverage : savedResults;
+  const accuracyContent = accuracy !== null && accuracy !== undefined ? accuracy : savedResults;
 
   return (
-    <div>
-      <SlideFade in={inView} offsetY="-50px">
-        <Card
-          p={50}
-          margin={5}
-          bgColor="teal.300"
+    <div className="results-wrap">
+      <Box
+        display="flex"
+        flexDirection="column"
+        justifyContent="center"
+        alignItems="center"
+        width="100%"
+        p={5}
+      >
+        {/* Outer teal box */}
+        <Box
           borderRadius={50}
           boxShadow="dark-lg"
-          maxH="80vh"
-          overflowY="auto"
+          p={8}
+          bg="teal.300"
+          width="100%"
+          maxW="1100px"
+          display="flex"
+          justifyContent="center"
         >
-          <CardHeader>
-            <Heading size="2xl" color="teal.900" textAlign="center">
-              {savedContentType && savedOption
-                ? `Summary of Your ${savedContentType}:`
-                : !savedContentType
-                ? "Select your input source"
-                : "Select an option"}
-            </Heading>
-          </CardHeader>
-          <CardBody>
-            {savedContentType && savedOption ? (
-              savedResults || coverage !== null || accuracy !== null ? (
-                <Box textAlign="center">
-                  {coverage !== null && accuracy !== null ? (
-                    <>
-                      <Box mt={4} p={4} borderWidth="1px" borderRadius="md">
-                        <Text fontSize="lg" color="teal.800">
-                          <strong>Coverage:</strong> {coverage}%
-                        </Text>
-                        <Text fontSize="lg" color="teal.800" mt={4}>
-                          <strong>Accuracy:</strong> {accuracy}%
-                        </Text>
-                      </Box>
-                    </>
-                  ) : (
-                    <Box mt={4} p={4} borderWidth="1px" borderRadius="md">
-                      {renderProcessedText(savedResults)}
-                    </Box>
-                  )}
-                </Box>
+          {/* Inner gray box with white border (like Timer) */}
+          <Box
+            borderRadius={50}
+            boxShadow="dark-lg"
+            p={10}
+            bg="gray.800"
+            width="100%"
+            maxW="900px"
+            borderColor="white"
+            borderWidth="5px"
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+          >
+          {/* Title - white color */}
+          <Heading size="xl" textAlign="center" mb={6} color="yellow.100">
+            {savedContentType && savedOption
+              ? `Summary of Your ${savedContentType}:`
+              : !savedContentType
+              ? "Select your input source"
+              : "Select an option"}
+          </Heading>
+
+          {/* Tab buttons with teal arrows */}
+          <HStack justify="center" spacing={3} className="segment-row" mb={6}>
+            <IconButton
+              aria-label="previous"
+              icon={<ChevronLeftIcon />}
+              onClick={() => setActiveIndex((s) => (s - 1 + tabs.length) % tabs.length)}
+              colorScheme="teal"
+              variant="solid"
+              size="sm"
+            />
+
+            {tabs.map((t, i) => (
+              <Button
+                key={t}
+                onClick={() => setActiveIndex(i)}
+                bg={i === activeIndex ? "yellow.400" : "orange.300"}
+                color="white"
+                borderRadius={10}
+                boxShadow="0 0 0 3px rgba(237, 137, 54)"
+                px={6}
+                fontWeight="bold"
+                _hover={{ bg: i === activeIndex ? "yellow.500" : "orange.400" }}
+              >
+                {t}
+              </Button>
+            ))}
+
+            <IconButton
+              aria-label="next"
+              icon={<ChevronRightIcon />}
+              onClick={() => setActiveIndex((s) => (s + 1) % tabs.length)}
+              colorScheme="teal"
+              variant="solid"
+              size="sm"
+            />
+          </HStack>
+
+          {/* White card for results */}
+          <Box
+            bg="white"
+            borderRadius={20}
+            p={6}
+            boxShadow="md"
+            width="100%"
+            maxW="820px"
+          >
+            <Box>
+              {showResults ? (
+                (coverage || accuracy) ? (
+                  <div className="card-stage">
+                    {activeIndex === 0 ? (
+                      <ResultCard key={0} title="Coverage" content={coverageContent || "No coverage content"} />
+                    ) : (
+                      <ResultCard key={1} title="Accuracy" content={accuracyContent || "No accuracy content"} />
+                    )}
+                  </div>
+                ) : (
+                  <Box textAlign="center">
+                    <Heading size="md" color="#0f172a">
+                      No results available
+                    </Heading>
+                  </Box>
+                )
               ) : (
                 <Box textAlign="center">
-                  <Heading size="md" color="teal.800">
-                    No results available
-                  </Heading>
+                  <Text color="#64748b">Choose a source and option to see results here.</Text>
                 </Box>
-              )
-            ) : !savedContentType ? (
-              <Box textAlign="center">
-                <Button
-                  onClick={() => navigate("/source")}
-                  bgColor={"orange.300"}
-                  _hover={{ bg: "yellow.300", color: "teal.400" }}
-                  color="white"
-                  borderRadius={10}
-                  p={2}
-                  boxShadow="xl"
-                  marginRight={2}
-                  flexShrink={0}
-                  mt={4}
-                >
-                  Go to Source Selection
-                </Button>
-              </Box>
+              )}
+            </Box>
+          </Box>
+
+          {/* Navigation buttons */}
+          <Box mt={6} display="flex" justifyContent="center">
+            {!savedContentType ? (
+              <Button
+                onClick={() => navigate("/source")}
+                bgColor="orange.300"
+                _hover={{ bg: "yellow.300", color: "teal.400" }}
+                color="white"
+                borderRadius={10}
+                p={2}
+                boxShadow="xl"
+              >
+                Go to Source Selection
+              </Button>
             ) : (
-              <Box textAlign="center">
-                <Button
-                  onClick={() => navigate("/studyboard")}
-                  bgColor={"orange.300"}
-                  _hover={{ bg: "yellow.300", color: "teal.400" }}
-                  color="white"
-                  borderRadius={10}
-                  p={2}
-                  boxShadow="xl"
-                  marginRight={2}
-                  flexShrink={0}
-                  mt={4}
-                >
-                  Go to Studyboard
-                </Button>
-              </Box>
+              <Button
+                onClick={() => navigate("/studyboard")}
+                bgColor="orange.300"
+                _hover={{ bg: "yellow.300", color: "teal.400" }}
+                color="white"
+                borderRadius={10}
+                p={2}
+                boxShadow="xl"
+              >
+                Go to Studyboard
+              </Button>
             )}
-          </CardBody>
-          <Flex>
-            <Spacer />
-            <CardFooter></CardFooter>
-          </Flex>
-        </Card>
-      </SlideFade>
+          </Box>
+        </Box>
+        </Box>
+      </Box>
     </div>
   );
 }
