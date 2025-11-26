@@ -5,34 +5,31 @@ import {
   FormControl,
   Textarea,
   FormHelperText,
-  Flex,
-  Spacer,
-  Button,
   Input,
 } from "@chakra-ui/react";
 import { Form } from "react-router-dom";
 
 export function TabContent({ type, onChange }) {
-  const [selectedFile, setSelectedFile] = useState(null);
   const [text, setText] = useState("");
   const [url, setUrl] = useState("");
 
   const handleFileChange = (event) => {
-    const file = event.target.files[0]; // Extract the file from the event
-    setSelectedFile(file);
-    if (file) {
-      onChange(type, file); // Pass the file to the onChange handler
+    const file = event.target.files?.[0] ?? null;
+    if (onChange) {
+      onChange(type, file);
     }
   };
+
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     if (name === "text") {
       setText(value);
-      onChange(type, text);
     }
     if (name === "url") {
       setUrl(value);
-      onChange(type, url);
+    }
+    if (onChange) {
+      onChange(type, value);
     }
   };
 
@@ -45,6 +42,7 @@ export function TabContent({ type, onChange }) {
               <Textarea
                 placeholder="Enter Information..."
                 name="text"
+                value={text}
                 onChange={handleInputChange}
               />
               <FormHelperText>
@@ -59,6 +57,7 @@ export function TabContent({ type, onChange }) {
               <Textarea
                 placeholder="Enter URL..."
                 name="url"
+                value={url}
                 onChange={handleInputChange}
               />
               <FormHelperText>

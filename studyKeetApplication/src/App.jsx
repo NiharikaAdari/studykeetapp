@@ -19,7 +19,7 @@ import { FlashcardProvider } from "./components/FlashcardContext.jsx";
 
 //layout
 import RootLayout from "./layout/RootLayout.jsx";
-import { createAction } from "./components/InputCard.jsx";
+import { NestProvider } from "./components/NestContext.jsx";
 
 const router = createHashRouter(
   createRoutesFromElements(
@@ -52,9 +52,11 @@ const router = createHashRouter(
 
 export default function App() {
   return (
-    <div>
-      <AnimatedBackground />
-      <RouterProvider router={router} />
-    </div>
+    <NestProvider>
+      <div>
+        <AnimatedBackground />
+        <RouterProvider router={router} />
+      </div>
+    </NestProvider>
   );
 }
