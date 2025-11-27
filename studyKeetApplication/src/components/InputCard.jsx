@@ -34,6 +34,7 @@ import { motion } from "framer-motion";
 import { inView } from "framer-motion";
 import { TabButton } from "./TabButton.jsx";
 import { TabContent } from "./TabContent.jsx";
+import AnimatedBird from "./AnimatedBird.jsx";
 import { useNavigate } from "react-router-dom";
 import { useNestContext } from "./NestContext.jsx";
 
@@ -267,7 +268,14 @@ export default function InputCard() {
   return (
     <div>
       <SlideFade in={inView} offsetY="-50px">
-        <Card p={50} margin={5} bgColor="teal.300" borderRadius={50} boxShadow="dark-lg">
+        <Card p={50} margin={5} bgColor="teal.300" borderRadius={50} boxShadow="dark-lg" position="relative">
+          
+          <AnimatedBird
+            onBirdClick={() => console.log("Bird clicked!")}
+            showTips={true}
+            autoFlyIn={true}
+          />
+
           <CardHeader>
             <Heading size="2xl" color="teal.900" textAlign="center">
               What Will You Study?
@@ -493,11 +501,11 @@ export default function InputCard() {
               
               {!hasNests && (
                 <Box 
-                  bg="gradient(linear, to-r, gray.100, gray.200)" 
+                  bg="yellow.100" 
                   p={4} 
                   borderRadius="lg" 
                   border="2px dashed" 
-                  borderColor="gray.400"
+                  borderColor="orange.200"
                 >
                   <Text fontSize="sm" color="gray.600" fontStyle="italic" textAlign="center" fontWeight="medium">
                     💡 Create a nest at the bottom to start organizing your study materials

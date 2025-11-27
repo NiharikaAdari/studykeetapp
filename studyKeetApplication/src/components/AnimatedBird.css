@@ -17,12 +17,12 @@
 
 /* Flying state animation */
 .animated-bird.fly-in {
-  animation: fly-bounce 0.3s ease-in-out infinite alternate;
+  animation: none; /* No bouncing */
 }
 
-/* Landing state subtle bob */
+/* Landing state - no movement */
 .animated-bird.landing {
-  animation: landing-settle 0.5s ease-out;
+  animation: none; /* No settling animation */
 }
 
 /* Idle state - no movement */
@@ -45,17 +45,7 @@
   animation: none; /* Frame animation handles this */
 }
 
-/* Animation keyframes */
-@keyframes fly-bounce {
-  0% { transform: translateY(0px); }
-  100% { transform: translateY(-8px); }
-}
-
-@keyframes landing-settle {
-  0% { transform: translateY(-10px) rotate(-5deg); }
-  50% { transform: translateY(5px) rotate(2deg); }
-  100% { transform: translateY(0px) rotate(0deg); }
-}
+/* Animation keyframes - removed to prevent bouncing */
 
 /* Speech bubble animations */
 .speech-bubble {
