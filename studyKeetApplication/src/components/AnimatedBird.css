@@ -1,0 +1,122 @@
+/* AnimatedBird.css - Sprite animation styles */
+
+.animated-bird {
+  background-repeat: no-repeat;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  /* Remove any potential border artifacts */
+  border: none !important;
+  outline: none !important;
+  box-sizing: border-box;
+  /* Ensure smooth frame transitions */
+  background-clip: border-box;
+  background-origin: border-box;
+}
+
+/* Flying state animation */
+.animated-bird.fly-in {
+  animation: fly-bounce 0.3s ease-in-out infinite alternate;
+}
+
+/* Landing state subtle bob */
+.animated-bird.landing {
+  animation: landing-settle 0.5s ease-out;
+}
+
+/* Idle state - no movement */
+.animated-bird.idle {
+  animation: none; /* Frame animation handles this */
+}
+
+/* Blinking state */
+.animated-bird.blinking {
+  animation: none; /* Frame animation handles this */
+}
+
+/* Reacting state - no bounce */
+.animated-bird.reacting {
+  animation: none; /* Frame animation handles this */
+}
+
+/* Speaking state - no bob */
+.animated-bird.speaking {
+  animation: none; /* Frame animation handles this */
+}
+
+/* Animation keyframes */
+@keyframes fly-bounce {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-8px); }
+}
+
+@keyframes landing-settle {
+  0% { transform: translateY(-10px) rotate(-5deg); }
+  50% { transform: translateY(5px) rotate(2deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+/* Speech bubble animations */
+.speech-bubble {
+  animation: bubble-appear 0.3s ease-out;
+}
+
+@keyframes bubble-appear {
+  0% { 
+    opacity: 0; 
+    transform: scale(0.8) translateY(10px); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: scale(1) translateY(0px); 
+  }
+}
+
+/* Hover effects */
+.animated-bird:hover {
+  filter: brightness(1.1) contrast(1.05);
+  transition: filter 0.2s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .animated-bird {
+    width: 96px;
+    height: 96px;
+    background-size: 672px 768px; /* Scale down sprite sheet */
+    background-position: calc(var(--col, 0) * -96px) calc(var(--row, 0) * -96px);
+  }
+  
+  .speech-bubble {
+    max-width: 200px;
+    font-size: 0.875rem;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .animated-bird,
+  .animated-bird.fly-in,
+  .animated-bird.landing,
+  .animated-bird.idle,
+  .animated-bird.reacting,
+  .animated-bird.speaking {
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  .speech-bubble {
+    animation: none !important;
+  }
+}
+
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+  .speech-bubble {
+    border-width: 3px;
+    border-color: #000;
+    background: #fff;
+    color: #000;
+  }
+}
